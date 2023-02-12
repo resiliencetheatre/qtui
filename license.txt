@@ -1,0 +1,47 @@
+<b>OOB-Comm</b>
+
+<p>Out-Of-Band communication solution</p>
+
+<p>Copyright (C) 2023  Resilience Theatre</p>
+
+<p>
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version. 
+</p>
+
+<p>
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+</p>
+<p>
+For the complete terms of the GNU General Public License, please see this URL:
+</p>
+<p>
+http://www.gnu.org/licenses/gpl-2.0.html
+</p>
+
+<p>
+<b>Open Source Qt</b>
+</p>
+
+<p>
+"Open Source Qt" shall mean the non-commercial Qt computer software products, licensed under the terms of the GNU Lesser General Public License, version 2.1 or later ("LGPL") or the GNU General Public License, version 2.0 or later ("GPL").
+</p>
+<p>
+https://doc.qt.io/qt-5/licenses-used-in-qt.html
+</p>
+<p>
+<b>Build environment</b>
+</p>
+<p>
+Solution is cross compiled with buildroot form local source code with full SBOM inventory available on build machine.
+</p>
+<p>
+https://buildroot.org/
+</p>
+
+
+
+
+
+
+
+

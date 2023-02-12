@@ -1,0 +1,21 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>Page1Form.qml</file>
+        <file>Page2Form.qml</file>
+        <file>Page3Form.qml</file>
+        <file>alpha.png</file>
+        <file>echo.png</file>
+        <file>bravo.png</file>
+        <file>charlie.png</file>
+        <file>delta.png</file>
+        <file>foxrot.png</file>
+        <file>powerbutton.png</file>
+        <file>lockscreen.png</file>
+        <file>mainscreen.png</file>
+        <file>golf.png</file>
+        <file>hotel.png</file>
+        <file>india.png</file>
+        <file>juliet.png</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,2411 @@
+/*
+    small Pinephone QML interface for Out-Of-Band communication.
+
+    Copyright (C) 2023 Resilience Theatre
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; If not, see <http://www.gnu.org/licenses/>.
+
+    TODO:
+    ---------------------------------------------------------------------
+    [ ]     Audio volume: mixer names setting or detection
+    [ ]     Remote kill command & distress logic
+    [ ]     Nuke logic
+    [ ]     Wifi SSID's with spaces do not work
+    [ ]     LTE connectivity
+
+    NOTE:   If you turn LTE modem off with DIP switches, adjust /root/utils/cell.sh
+            because it might block if modem is non reachable.
+
+            This code is highly experimental.
+*/
+
+#include "engineclass.h"
+#include <QDebug>
+#include <QFile>
+#include <QFileSystemWatcher>
+#include <QProcess>
+#include <QCoreApplication>
+#include <QTimer>
+#include <QSettings>
+#include <QQmlEngine>
+#include <QQmlComponent>
+#include <fcntl.h>
+#include <unistd.h>
+#include <linux/input.h>
+
+#define USER_PREF_INI_FILE      "/opt/tunnel/userpreferences.ini"
+#define TELEMETRY_FIFO_IN       "/tmp/telemetry_fifo_in"
+#define TELEMETRY_FIFO_OUT      "/tmp/telemetry_fifo_out"
+#define MESSAGE_RECEIVE_FIFO    "/tmp/message_fifo_out"
+#define NODECOUNT               10
+#define CONNPOINTCOUNT          3
+#define INDICATE_ONLY           0
+#define LOG_ONLY                1
+#define LOG_AND_INDICATE        2
+#define SETTINGS_INI_FILE       "/opt/tunnel/sinm.ini"
+#define SUBSTITUTE_CHAR_CODE    24
+#define PWR_GPIO_INPUT_PATH     "/dev/input/by-path/platform-1f03400.rsb-platform-axp221-pek-event"
+#define VOL_GPIO_INPUT_PATH     "/dev/input/by-path/platform-1c21800.lradc-event"
+#define BATTERY_CAPACITY_PATH   "/sys/class/power_supply/axp20x-battery/capacity"
+#define BATTERY_CURRENT_PATH    "/sys/class/power_supply/axp20x-battery/current_now"
+#define BATTERY_STATUS_PATH    "/sys/class/power_supply/axp20x-battery/status"
+#define LOCK_DEVICE             true
+#define UNLOCK_DEVICE           false
+#define DEVICE_LOCK_TIME        60
+#define FIFO_TIMEOUT            1
+#define FIFO_REPLY_RECEIVED     0
+
+engineClass::engineClass(QObject *parent)
+    : QObject{parent}
+{
+    QTimer::singleShot(2 * 1000, this, SLOT(loadSettings()));
+    QTimer::singleShot(4 * 1000, this, SLOT(initEngine()));
+    envTimer = new QTimer();
+    connect(envTimer, &QTimer::timeout, this, QOverload<>::of(&engineClass::envTimerTick));
+    envTimer->start(5000);
+
+    /* Power button, TODO: m_pwrButtonFileHandle close */
+    QByteArray pwrButtonDevice = QByteArrayLiteral(PWR_GPIO_INPUT_PATH);
+    m_pwrButtonFileHandle = open(pwrButtonDevice.constData(), O_RDONLY);
+    if (m_pwrButtonFileHandle >= 0) {
+        m_pwrButtonNotify = new QSocketNotifier(m_pwrButtonFileHandle, QSocketNotifier::Read, this);
+        connect(m_pwrButtonNotify, SIGNAL(activated(int)), this, SLOT(readPwrGpioButton()));
+    } else {
+        qErrnoWarning(errno, "Cannot open input device %s", pwrButtonDevice.constData());
+    }
+    /* Volume buttons */
+    QByteArray volButtonDevice = QByteArrayLiteral(VOL_GPIO_INPUT_PATH);
+    m_volButtonFileHandle = open(volButtonDevice.constData(), O_RDONLY);
+    if (m_volButtonFileHandle >= 0) {
+        m_volButtonNotify = new QSocketNotifier(m_volButtonFileHandle, QSocketNotifier::Read, this);
+        connect(m_volButtonNotify, SIGNAL(activated(int)), this, SLOT(readVolGpioButton()));
+    } else {
+        qErrnoWarning(errno, "Cannot open input device %s", volButtonDevice.constData());
+    }
+
+    /* Enable backlight */
+    runExternalCmd("/bin/pptk-backlight", {"set_percent", "50"});
+    m_screenTimeoutCounter=DEVICE_LOCK_TIME;
+
+    /* Set default wifi status on top bar*/
+    m_wifiNotifyText = "WIFI";
+    m_wifiNotifyColor = "#00FF00";
+    emit wifiNotifyTextChanged();
+    emit wifiNotifyColorChanged();
+
+    /* Load about text content */
+    loadAboutText();
+}
+
+void engineClass::runExternalCmd(QString command, QStringList parameters){
+    qint64 pid;
+    QProcess process;
+    process.setProgram(command);
+    process.setArguments(parameters);
+    process.startDetached(&pid);
+}
+
+void engineClass::runExternalCmdCaptureOutput(QString command, QStringList parameters){
+    QProcess process;
+    process.setProgram(command);
+    process.setArguments(parameters);
+    process.start();
+    process.waitForFinished();
+    QString result=process.readAllStandardOutput();
+    qDebug() << "ext. output " << result;
+}
+
+void engineClass::lockDevice(bool state)
+{
+    if ( state == LOCK_DEVICE ) {
+        m_deviceLocked = true;
+        runExternalCmd("/bin/pptk-vibrate", {"200","200","1"});
+        runExternalCmd("/bin/pptk-backlight", {"set_percent", "0"});
+        runExternalCmd("/bin/pptk-cpu-sleep", {"enable"});
+        m_touchBlock_active=true;
+        emit touchBlock_activeChanged();
+        m_SwipeViewIndex = 0;
+        emit swipeViewIndexChanged();
+        m_lockScreen_active=true;
+        emit lockScreen_activeChanged();
+        m_lockScreenPinCode = "";
+        emit lockScreenPinCodeChanged();
+        m_camoScreen_active = false;
+        emit camoScreen_activeChanged();
+        if ( m_deepSleepEnabled )
+            runExternalCmd("/bin/deepsleep.sh", {});
+    }
+    if ( state == UNLOCK_DEVICE ) {
+        m_deviceLocked = false;
+        m_screenTimeoutCounter=DEVICE_LOCK_TIME;
+        runExternalCmd("/bin/pptk-vibrate", {"200","200","2"});
+        runExternalCmd("/bin/pptk-backlight", {"set_percent", "50"});
+        runExternalCmd("/bin/pptk-cpu-sleep", {"disable"});
+        m_touchBlock_active=false;
+        emit touchBlock_activeChanged();
+    }
+}
+
+void engineClass::readPwrGpioButton()
+{
+    struct input_event in_ev = { 0 };
+    /*  Loop read data  */
+    if (sizeof(struct input_event) != read(m_pwrButtonFileHandle, &in_ev, sizeof(struct input_event))) {
+        perror("read error");
+        exit(-1);
+    }
+    switch (in_ev.type) {
+    case EV_KEY:
+    {
+        if (KEY_POWER == in_ev.code && in_ev.value == 1 ) {
+            runExternalCmd("/bin/pptk-led", {"set", "red", "1"});
+            if ( m_deviceLocked == false ) {
+                lockDevice(LOCK_DEVICE);
+            } else
+            {
+                lockDevice(UNLOCK_DEVICE);
+            }
+            break;
+        }
+        if (KEY_POWER == in_ev.code && in_ev.value == 0 ) {
+            runExternalCmd("/bin/pptk-led", {"set", "red", "0"});
+            break;
+        }
+    }
+    }
+}
+
+void engineClass::readVolGpioButton()
+{
+    struct input_event in_ev = { 0 };
+    /*  Loop read data  */
+    if (sizeof(struct input_event) != read(m_volButtonFileHandle, &in_ev, sizeof(struct input_event))) {
+        perror("read error");
+        exit(-1);
+    }
+    switch (in_ev.type) {
+    case EV_KEY:
+    {
+        if (KEY_VOLUMEDOWN == in_ev.code && in_ev.value == 1 ) {
+            if ( m_SpeakerVolumeRuntimeValue > 0 && m_SpeakerVolumeRuntimeValue <= 100 )
+            {
+                m_SpeakerVolumeRuntimeValue = m_SpeakerVolumeRuntimeValue - 5;
+            }
+            m_statusMessage = "Volume: " + QString::number(m_SpeakerVolumeRuntimeValue) + " %" ;
+            emit statusMessageChanged();
+            uPref.volumeValue = QString::number(m_SpeakerVolumeRuntimeValue);
+            saveUserPreferences();
+            break;
+        }
+        if (KEY_VOLUMEUP == in_ev.code && in_ev.value == 1 ) {
+            if ( m_SpeakerVolumeRuntimeValue >= 0 && m_SpeakerVolumeRuntimeValue < 100 )
+            {
+                m_SpeakerVolumeRuntimeValue = m_SpeakerVolumeRuntimeValue + 5;
+            }
+            m_statusMessage = "Volume: " + QString::number(m_SpeakerVolumeRuntimeValue) + " %" ;
+            emit statusMessageChanged();
+            uPref.volumeValue = QString::number(m_SpeakerVolumeRuntimeValue);
+            saveUserPreferences();
+            break;
+        }
+    }
+    }
+}
+
+/* TODO: UI elements (or automation) needed still for mixer naming
+ *
+ * Set system volume with external process.
+ * Playback volume:     amixer sset [DEVICENAME] Playback 100%
+ * Microphone volume:   amixer sset [DEVICENAME] Capture 5%+
+ */
+void engineClass::setSystemVolume(int volume)
+{
+    QString volumePercentString = QString::number(volume) + "%";
+    qint64 pid;
+    QProcess process;
+    process.setProgram("/usr/bin/amixer");
+    process.setArguments({"sset","'PCM'", "Playback",volumePercentString}); // TODO
+    process.setStandardOutputFile(QProcess::nullDevice());
+    process.setStandardErrorFile(QProcess::nullDevice());
+    process.startDetached(&pid);
+}
+void engineClass::setMicrophoneVolume(int volume)
+{
+    QString volumePercentString = QString::number(volume) + "%";
+    qint64 pid;
+    QProcess process;
+    process.setProgram("/usr/bin/amixer");
+    process.setArguments({"sset","'Mic'", "Capture", volumePercentString }); // TODO
+    process.setStandardOutputFile(QProcess::nullDevice());
+    process.setStandardErrorFile(QProcess::nullDevice());
+    process.startDetached(&pid);
+}
+void engineClass::loadUserPreferences()
+{
+    QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
+    uPref.volumeValue = settings.value("volume","70").toString();
+    uPref.m_micVolume = settings.value("micvolume","100").toString();
+    nodes.beepActive = settings.value("beep").toString();
+    m_SpeakerVolumeRuntimeValue = uPref.volumeValue.toInt();
+    setSystemVolume(m_SpeakerVolumeRuntimeValue);
+    setMicrophoneVolume( uPref.m_micVolume.toInt() );
+    uPref.m_pinCode = settings.value("pincode","4321").toString();
+    m_deepSleepEnabled = settings.value("deepsleep",false).toBool();
+    emit deepSleepEnabledChanged();
+}
+void engineClass::saveUserPreferences()
+{
+    QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
+    settings.setValue("volume", uPref.volumeValue);
+    setSystemVolume( uPref.volumeValue.toInt() );
+    setMicrophoneVolume(uPref.m_micVolume.toInt());
+}
+
+void engineClass::loadSettings()
+{
+    if ( m_vaultModeActive ) {
+        m_vaultNotifyText = "ENTER VAULT PIN";
+        m_vaultNotifyColor = "red";
+        m_vaultNotifyTextColor = "white";
+        emit vaultScreenNotifyTextChanged();
+        emit vaultScreenNotifyColorChanged();
+        emit vaultScreenNotifyTextColorChanged();
+        return;
+    }
+    /* Load volumes (for now)*/
+    loadUserPreferences();
+    QSettings settings(SETTINGS_INI_FILE,QSettings::IniFormat);
+    /* Get own node information*/
+    nodes.myNodeId = settings.value("my_id").toString();
+    nodes.myNodeIp = settings.value("my_ip").toString();
+    nodes.myNodeName = settings.value("my_name").toString();
+    emit myCallSignChanged();
+    /* Get nodes */
+    for (int x=0; x < NODECOUNT; x++ ) {
+        nodes.node_name[x] = settings.value("node_name_"+QString::number(x), "").toString();
+        nodes.node_ip[x] = settings.value("node_ip_"+QString::number(x), "").toString();
+        nodes.node_id[x] = settings.value("node_id_"+QString::number(x), "").toString();
+    }
+    /* Change button titles */
+    m_peer_0_CallSign=nodes.node_name[0];
+    emit peer_0_NameChanged();
+    m_peer_1_CallSign=nodes.node_name[1];
+    emit peer_1_NameChanged();
+    m_peer_2_CallSign=nodes.node_name[2];
+    emit peer_2_NameChanged();
+    m_peer_3_CallSign=nodes.node_name[3];
+    emit peer_3_NameChanged();
+    m_peer_4_CallSign=nodes.node_name[4];
+    emit peer_4_NameChanged();
+    m_peer_5_CallSign=nodes.node_name[5];
+    emit peer_5_NameChanged();
+    m_peer_6_CallSign=nodes.node_name[6];
+    emit peer_6_NameChanged();
+    m_peer_7_CallSign=nodes.node_name[7];
+    emit peer_7_NameChanged();
+    m_peer_8_CallSign=nodes.node_name[8];
+    emit peer_8_NameChanged();
+    m_peer_9_CallSign=nodes.node_name[9];
+    emit peer_9_NameChanged();
+
+    m_statusMessage = "Settings loaded, please wait.";
+    emit statusMessageChanged();
+
+    // Key usage population
+    reloadKeyUsage();
+
+    // Set peer contact colors
+    m_peer_0_CallSignColor = "green";
+    emit peer_0_NameColorChanged();
+    m_peer_1_CallSignColor = "green";
+    emit peer_1_NameColorChanged();
+    m_peer_2_CallSignColor = "green";
+    emit peer_2_NameColorChanged();
+    m_peer_3_CallSignColor = "green";
+    emit peer_3_NameColorChanged();
+    m_peer_4_CallSignColor = "green";
+    emit peer_4_NameColorChanged();
+    m_peer_5_CallSignColor = "green";
+    emit peer_5_NameColorChanged();
+    m_peer_6_CallSignColor = "green";
+    emit peer_6_NameColorChanged();
+    m_peer_7_CallSignColor = "green";
+    emit peer_7_NameColorChanged();
+    m_peer_8_CallSignColor = "green";
+    emit peer_8_NameColorChanged();
+    m_peer_9_CallSignColor = "green";
+    emit peer_9_NameColorChanged();
+}
+
+void engineClass::setVaultMode(bool vaultModeActive) {
+    m_vaultModeActive=vaultModeActive;
+    emit vaultScreen_activeChanged();
+}
+
+/* This function will read key file lenghts and counter values of each key.
+   Way keys are named as files, depends on index unit has. Therefore we
+   need 'tipping point' - which gives index order change location while
+   checking files. See key creation code to get better picture of this.
+*/
+void engineClass::reloadKeyUsage()
+{
+    int tippingPoint=0;
+    QString keyfile;
+    QString keyCountfile;
+    for (int x=0; x < NODECOUNT; x++ ) {
+        m_keyPersentage_incount[x] = "";
+        m_keyPersentage_outcount[x] = "";
+    }
+    /* Find a tipping point in keyfile naming. */
+    for (int x=0; x < NODECOUNT; x++ ) {
+        if ( nodes.node_id[x].compare( nodes.myNodeId ) == 0 ){
+            tippingPoint = x;
+        }
+    }
+    /* Loop for inkey with tipping point evaluation */
+    for (int x=0; x < NODECOUNT; x++ ) {
+        if ( nodes.node_id[x].compare( nodes.myNodeId ) != 0 )
+        {
+            if ( x < tippingPoint ) {
+                keyfile = "/opt/tunnel/" + nodes.node_id[x] + nodes.myNodeId +".inkey";
+                keyCountfile = "/opt/tunnel/" + nodes.node_id[x] + nodes.myNodeId +".incount";
+            } else {
+                keyfile = "/opt/tunnel/" + nodes.myNodeId + nodes.node_id[x] +".inkey";
+                keyCountfile = "/opt/tunnel/" + nodes.myNodeId + nodes.node_id[x] +".incount";
+            }
+            // Read actual information
+            long int key_file_size = get_file_size(keyfile);
+            long int rx_key_used = get_key_index(keyCountfile);
+            float key_percentage = (100.0*rx_key_used)/key_file_size;
+            QString fullPercentage=QString::number(100-key_percentage,'f',0);
+            m_keyPersentage_incount[x] = fullPercentage;
+        }
+    }
+    /* Loop for outkey with tipping point evaluation */
+    for (int x=0; x < NODECOUNT; x++ ) {
+        if ( nodes.node_id[x].compare( nodes.myNodeId ) != 0 )
+        {
+            if ( x < tippingPoint ) {
+                keyfile = "/opt/tunnel/" + nodes.node_id[x] + nodes.myNodeId +".outkey";
+                keyCountfile = "/opt/tunnel/" + nodes.node_id[x] + nodes.myNodeId +".outcount";
+            } else {
+                keyfile = "/opt/tunnel/" + nodes.myNodeId + nodes.node_id[x] +".outkey";
+                keyCountfile = "/opt/tunnel/" + nodes.myNodeId + nodes.node_id[x] +".outcount";
+            }
+            // Read actual information
+            long int key_file_size = get_file_size(keyfile);
+            long int rx_key_used = get_key_index(keyCountfile);
+            float key_percentage = (100.0*rx_key_used)/key_file_size;
+            QString fullPercentage=QString::number(100-key_percentage,'f',0);
+            m_keyPersentage_outcount[x] = fullPercentage;
+        }
+    }
+    emit peer_0_keyPercentageChanged();
+    emit peer_1_keyPercentageChanged();
+    emit peer_2_keyPercentageChanged();
+    emit peer_3_keyPercentageChanged();
+    emit peer_4_keyPercentageChanged();
+    emit peer_5_keyPercentageChanged();
+    emit peer_6_keyPercentageChanged();
+    emit peer_7_keyPercentageChanged();
+    emit peer_8_keyPercentageChanged();
+    emit peer_9_keyPercentageChanged();
+}
+
+void engineClass::envTimerTick()
+{
+    /* /sys/class/power_supply/axp20x-battery/capacity
+     *
+     * BATTERY_CURRENT_PATH
+     * BATTERY_STATUS_PATH      Charging    Discharging
+
+        Read values from comma separated string (produced by cell.sh)
+        *  "4.23,24412,6301,397322,51,E-UTRA band 20: 800 DD,-76 dBm,-14 dB,-101 dBm,3.8 dB"
+        See: pinerouter-ui for details on cell thing
+
+    */
+
+    if ( m_vaultModeActive ) {
+        return;
+    }
+
+    if ( 0 ) {
+        /* Read voltage from ENV file as volts */
+        QString filename="/tmp/env";
+        QFile file(filename);
+        if(!file.exists()){
+          qDebug() << "Error, no file: "<<filename;
+        }
+        QString line;
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)){
+          QTextStream stream(&file);
+          while (!stream.atEnd()){
+              line = stream.readLine();
+          }
+        }
+        file.close();
+
+        /* Split string and display voltage type #1 (env file / volts)  */
+        QStringList elements = line.split(',');
+        mVoltage = elements[0] + " V";
+        emit voltageValueChanged();
+        float voltageCompareValue = elements[0].toFloat();
+        if (voltageCompareValue < 3.7 && voltageCompareValue > 3.6 ) {
+           mvoltageNotifyColor = "#FFFF00";
+           emit voltageNotifyColorChanged();
+        }
+        if (voltageCompareValue > 3.7) {
+           mvoltageNotifyColor = "#00FF00";
+           emit voltageNotifyColorChanged();
+        }
+        if (voltageCompareValue < 3.6) {
+           mvoltageNotifyColor = "#FF5555";
+           emit voltageNotifyColorChanged();
+        }
+    }
+    /* Read capacity as percentage from /sys/class/power_supply/axp20x-battery/capacity */
+    if ( 1 ) {
+
+        QString chargeStatusText="";
+        // Status
+        QFile batStatusFile(BATTERY_STATUS_PATH);
+        if(!batStatusFile.exists()){
+        }
+        QString batStatus;
+        if (batStatusFile.open(QIODevice::ReadOnly | QIODevice::Text)){
+            QTextStream stream(&batStatusFile);
+            batStatus = stream.readLine();
+        }
+        batStatusFile.close();
+        if ( batStatus.contains( "Charging",Qt::CaseInsensitive ) ) {
+             chargeStatusText = "↗";
+        }
+        if ( batStatus.contains( "Discharging",Qt::CaseInsensitive ) ) {
+             chargeStatusText = "↘";
+        }
+
+        // Capacity
+        QFile file(BATTERY_CAPACITY_PATH);
+        if(!file.exists()){
+          mVoltage = "ERR";
+          emit voltageValueChanged();
+        }
+        QString line;
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)){
+          QTextStream stream(&file);
+          line = stream.readLine();
+        }
+        file.close();
+        mVoltage = "" + line + " % " + chargeStatusText;
+        emit voltageValueChanged();
+        int voltCompare = line.toInt();
+        // Green > 20 %
+        if ( voltCompare > 20 ) {
+           mvoltageNotifyColor = "#00FF00";
+           emit voltageNotifyColorChanged();
+        }
+        // Yellow 10 - 20 %
+        if ( voltCompare >= 10 && voltCompare <= 20 ) {
+           mvoltageNotifyColor = "#FFFF00";
+           emit voltageNotifyColorChanged();
+        }
+        // Red < 10 %
+        if ( voltCompare < 10 ) {
+           mvoltageNotifyColor = "#FF5555";
+           emit voltageNotifyColorChanged();
+        }
+    }
+
+    /* dpinger -f -s 5000 -r 5000 10.0.0.1 > /tmp/network */
+    QString networkStatusFile="/tmp/network";
+    QFile networkFile(networkStatusFile);
+    if(!networkFile.exists()){
+      qDebug() << "Error, no file: " << networkStatusFile;
+    }
+    QString networkMeasurementValues;
+    if (networkFile.open(QIODevice::ReadOnly | QIODevice::Text)){
+      QTextStream stream(&networkFile);
+      while (!stream.atEnd()){
+          networkMeasurementValues = stream.readLine();
+      }
+    }
+    networkFile.close();
+
+    // <Average Latency in μs> <Standard Deviation in μs> <Percentage of Loss>
+    QStringList networkElements = networkMeasurementValues.split(' ');
+    int latencyIntms = networkElements[0].toInt()/1000;
+    QString indicateValue = QString::number(latencyIntms) + " ms";
+    mnetworkStatusLabelValue = indicateValue;
+    mnetworkStatusLabelColor="#00FF00";
+    if ( latencyIntms < 200 ) {
+        mnetworkStatusLabelColor="#00FF00";
+    }
+    if ( latencyIntms == 0 ) {
+        mnetworkStatusLabelColor="#FF5555";
+    }
+    if ( latencyIntms > 200 ) {
+        mnetworkStatusLabelColor="#FFFF00";
+    }
+    if ( latencyIntms > 1000 ) {
+        mnetworkStatusLabelColor="#FF5555";
+    }
+
+    emit networkStatusLabelChanged();
+    emit networkStatusLabelColorChanged();
+
+//       mPlmn = elements[1];
+//       mTa = elements[2];
+//       mGc = elements[3];
+//       mSc = elements[4];
+//       mAc = elements[5];
+//       mRssi = elements[6];
+//       mRsrq = elements[7];
+//       mRsrp = elements[8];
+//       mSnr = elements[9];
+//       emit plmnValueChanged();
+//       emit taValueChanged();
+//       emit gcValueChanged();
+//       emit scValueChanged();
+//       emit acValueChanged();
+//       emit rssiValueChanged();
+//       emit rsrqValueChanged();
+//       emit rsrpValueChanged();
+//       emit snrValueChanged();
+
+    /* Screen timeout counter */
+    if ( m_screenTimeoutCounter > 0 && m_deviceLocked == false ) {
+        m_screenTimeoutCounter = m_screenTimeoutCounter - 5;
+//        if ( m_screenTimeoutCounter == 30 )
+//            runExternalCmd("/bin/pptk-backlight", {"set_percent", "10"});
+    }
+    if ( m_screenTimeoutCounter == 0 && m_deviceLocked == false ) {
+        lockDevice(LOCK_DEVICE);
+    }
+
+    peerLatency();
+}
+
+/* Read dpinger service output file for peers */
+void engineClass::peerLatency()
+{
+    QStringList peerStatusFileNames = { "/tmp/peer0","/tmp/peer1","/tmp/peer2","/tmp/peer3","/tmp/peer4", "/tmp/peer5", "/tmp/peer6", "/tmp/peer7", "/tmp/peer8", "/tmp/peer9" };
+
+    for (int i = 0; i < peerStatusFileNames.size(); i++) {
+        QString fileName=peerStatusFileNames.at(i).toLocal8Bit().constData();
+        QString entryLatency;
+        QFile peerLatencyFile( fileName );
+        if(!peerLatencyFile.exists()) {
+            qDebug() << "No latency file: " << fileName;
+        } else {
+            QString peerLatencyValue;
+            if (peerLatencyFile.open(QIODevice::ReadOnly | QIODevice::Text)){
+                QTextStream stream(&peerLatencyFile);
+                while (!stream.atEnd()){
+                    entryLatency = stream.readLine();
+                }
+            }
+            peerLatencyFile.close();
+            QStringList latencyElements = entryLatency.split(' ');
+            int latencyIntms = latencyElements[0].toInt()/1000;
+            m_peerLatencyValue[i] = QString::number(latencyIntms);
+        }
+    }
+    /* Peer latency */
+    if ( m_peerLatencyValue[0].toInt() > 0 ) {
+        m_peer_0_CallSignColor = "lightgreen";
+        emit peer_0_NameColorChanged();
+    } else {
+        m_peer_0_CallSignColor = "green";
+        emit peer_0_NameColorChanged();
+    }
+    if ( m_peerLatencyValue[1].toInt() > 0 ) {
+        m_peer_1_CallSignColor = "lightgreen";
+        emit peer_1_NameColorChanged();
+    } else {
+        m_peer_1_CallSignColor = "green";
+        emit peer_1_NameColorChanged();
+    }
+    if ( m_peerLatencyValue[2].toInt() > 0 ) {
+        m_peer_2_CallSignColor = "lightgreen";
+        emit peer_2_NameColorChanged();
+    } else {
+        m_peer_2_CallSignColor = "green";
+        emit peer_2_NameColorChanged();
+    }
+    if ( m_peerLatencyValue[3].toInt() > 0 ) {
+        m_peer_3_CallSignColor = "lightgreen";
+        emit peer_3_NameColorChanged();
+    } else {
+        m_peer_3_CallSignColor = "green";
+        emit peer_3_NameColorChanged();
+    }
+    if ( m_peerLatencyValue[4].toInt() > 0 ) {
+        m_peer_4_CallSignColor = "lightgreen";
+        emit peer_4_NameColorChanged();
+    } else {
+        m_peer_4_CallSignColor = "green";
+        emit peer_4_NameColorChanged();
+    }
+    if ( m_peerLatencyValue[5].toInt() > 0 ) {
+        m_peer_5_CallSignColor = "lightgreen";
+        emit peer_5_NameColorChanged();
+    } else {
+        m_peer_5_CallSignColor = "green";
+        emit peer_5_NameColorChanged();
+    }
+    if ( m_peerLatencyValue[6].toInt() > 0 ) {
+        m_peer_6_CallSignColor = "lightgreen";
+        emit peer_6_NameColorChanged();
+    } else {
+        m_peer_6_CallSignColor = "green";
+        emit peer_6_NameColorChanged();
+    }
+    if ( m_peerLatencyValue[7].toInt() > 0 ) {
+        m_peer_7_CallSignColor = "lightgreen";
+        emit peer_7_NameColorChanged();
+    } else {
+        m_peer_7_CallSignColor = "green";
+        emit peer_7_NameColorChanged();
+    }
+    if ( m_peerLatencyValue[8].toInt() > 0 ) {
+        m_peer_8_CallSignColor = "lightgreen";
+        emit peer_8_NameColorChanged();
+    } else {
+        m_peer_8_CallSignColor = "green";
+        emit peer_8_NameColorChanged();
+    }
+    if ( m_peerLatencyValue[9].toInt() > 0 ) {
+        m_peer_9_CallSignColor = "lightgreen";
+        emit peer_9_NameColorChanged();
+    } else {
+        m_peer_9_CallSignColor = "green";
+        emit peer_9_NameColorChanged();
+    }
+}
+
+
+void engineClass::initEngine()
+{
+    if ( m_vaultModeActive ) {
+        return;
+    }
+
+    int myOwnNodeId;
+    g_connectState = false;
+
+    // Telemetry FIFO watcher
+    watcher = new QFileSystemWatcher();
+    watcher->addPath(TELEMETRY_FIFO_OUT);
+    QObject::connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(fifoChanged()));
+
+    // Ping daemon
+    fifoWrite("127.0.0.1,daemon_ping");
+
+    // Open telemetry FIFO
+    fifoIn.setFileName(TELEMETRY_FIFO_OUT);
+    if(!fifoIn.open(QIODevice::ReadOnly | QIODevice::Unbuffered | QIODevice::Text)) {
+        qDebug() << "error " << fifoIn.errorString();
+    }
+
+    // Init message fifo & watcher
+    fifoWrite(nodes.myNodeIp + ",message,init"); // nodes.myNodeIp
+    QFileSystemWatcher *msgWatcher = new QFileSystemWatcher();
+    msgWatcher->addPath(MESSAGE_RECEIVE_FIFO);
+    QObject::connect(msgWatcher, SIGNAL(fileChanged(QString)), this, SLOT(msgFifoChanged()));
+
+    // Open incoming message FIFO
+    msgFifoIn.setFileName(MESSAGE_RECEIVE_FIFO);
+    if(!msgFifoIn.open(QIODevice::ReadOnly | QIODevice::Unbuffered | QIODevice::Text)) {
+        qDebug() << "error" << msgFifoIn.errorString();
+    }
+
+    /* Activate contact buttons */
+    m_button_0_active = true;
+    emit button_0_activeChanged();
+    m_button_1_active = true;
+    emit button_1_activeChanged();
+    m_button_2_active = true;
+    emit button_2_activeChanged();
+    m_button_3_active = true;
+    emit button_3_activeChanged();
+    m_button_4_active = true;
+    emit button_4_activeChanged();
+    m_button_5_active = true;
+    emit button_5_activeChanged();
+    m_button_6_active = true;
+    emit button_6_activeChanged();
+    m_button_7_active = true;
+    emit button_7_activeChanged();
+    m_button_8_active = true;
+    emit button_8_activeChanged();
+    m_button_9_active = true;
+    emit button_9_activeChanged();
+
+    /* Disable my own contact button */
+    for (int x=0; x < NODECOUNT; x++ ) {
+
+        if ( nodes.node_name[x].compare( nodes.myNodeName ) == 0 )
+            myOwnNodeId = x;
+
+         if ( myOwnNodeId == x ) {
+             if ( x == 0 ) {
+                 m_button_0_active = false;
+                 emit button_0_activeChanged();
+             }
+             if ( x == 1 ) {
+                 m_button_1_active = false;
+                 emit button_1_activeChanged();
+             }
+             if ( x == 2 ) {
+                 m_button_2_active = false;
+                 emit button_2_activeChanged();
+             }
+             if ( x == 3 )  {
+                 m_button_3_active = false;
+                 emit button_3_activeChanged();
+             }
+             if ( x == 4 )  {
+                 m_button_4_active = false;
+                 emit button_4_activeChanged();
+             }
+             if ( x == 5 ) {
+                 m_button_5_active = false;
+                 emit button_5_activeChanged();
+             }
+             if ( x == 6 ) {
+                 m_button_6_active = false;
+                 emit button_6_activeChanged();
+             }
+             if ( x == 7 ) {
+                 m_button_7_active = false;
+                 emit button_7_activeChanged();
+             }
+             if ( x == 8 ) {
+                 m_button_8_active = false;
+                 emit button_8_activeChanged();
+             }
+             if ( x == 9 ) {
+                 m_button_9_active = false;
+                 emit button_9_activeChanged();
+             }
+         }
+    }
+    m_statusMessage = "Ready!";
+    emit statusMessageChanged();
+}
+
+/* Msg quick buttons */
+
+void engineClass::quickButtonSend(int sendCode)
+{
+    if ( g_connectState ) {
+        if ( sendCode == 1 )
+        {
+            QString fifo_command = g_remoteOtpPeerIp + ",message,Ping";
+            fifoWrite(fifo_command);
+        }
+        if ( sendCode == 2 )
+        {
+            QString fifo_command = g_remoteOtpPeerIp + ",message,Ledredon";
+            fifoWrite(fifo_command);
+        }
+        if ( sendCode == 3 )
+        {
+            QString fifo_command = g_remoteOtpPeerIp + ",message,Ledredoff";
+            fifoWrite(fifo_command);
+        }
+        if ( sendCode == 4 )
+        {
+            QString fifo_command = g_remoteOtpPeerIp + ",message,Ledgreenon";
+            fifoWrite(fifo_command);
+        }
+        if ( sendCode == 5 )
+        {
+            QString fifo_command = g_remoteOtpPeerIp + ",message,Ledgreenoff";
+            fifoWrite(fifo_command);
+        }
+    }
+}
+
+
+/* Messaging fifo handler [pine] */
+int engineClass::msgFifoChanged()
+{
+    QTextStream in(&msgFifoIn);
+    QString line = in.readAll();
+    QStringList token = line.split(',');
+    /* Indicate incoming audio request ('ring') */
+    if ( token[1] == "ring" )
+    {
+       if ( m_deviceLocked == true ) {
+           lockDevice(UNLOCK_DEVICE);
+       }
+       m_callDialogVisible = true;
+       emit callDialogVisibleChanged();
+       token[1]="";
+       return 0;
+    }
+
+       if ( token[1] == "remote_hangup") {
+           updateCallStatusIndicator("Remote hangup", "green", "transparent",LOG_AND_INDICATE);
+           token[1]="";
+           eraseConnectionLabels();
+           m_callSignInsigniaImage = "";
+           m_insigniaLabelText = "";
+           m_insigniaLabelStateText = "";
+           emit callSignInsigniaImageChanged();
+           emit insigniaLabelTextChanged();
+           emit insigniaLabelStateTextChanged();
+           disconnectButton();
+           return 0;
+       }
+
+       if ( token[1] == "answer_success") {
+           updateCallStatusIndicator("Audio active", "lightgreen", "transparent",INDICATE_ONLY);
+           token[1]="";
+           return 0;
+       }
+
+       // Remote (who connected us) press 'terminate', we should do the same
+       if ( token[1] == "initiator_disconnect") {
+           qDebug() << "initiator_disconnect received to msgfifo";
+           // TODO: 'press' terminate
+           // if ( g_connectState )
+           //     on_denyButton_clicked(); ** IMPLEMENT waitForFifoReply() **
+           token[1]="";
+           return 0;
+       }
+
+       // client_connected,[client_id];[client_ip];[client_name]
+       if ( token[1].contains( "client_connected",Qt::CaseInsensitive ) ) {
+           qDebug() << "** Remote client connected **";
+
+           QStringList remoteParameters = token[1].split(';');
+           g_connectedNodeId = remoteParameters[1];
+           g_connectedNodeIp = remoteParameters[2];
+           // remote name: remoteParameters[3]
+           g_connectState = true;
+           updateCallStatusIndicator(remoteParameters[3] + " connected" , "lightgreen","transparent",LOG_AND_INDICATE);
+           token[1]="";
+
+           // Light up green label for connected name
+           setIndicatorForIncomingConnection(remoteParameters[2]);
+
+           // Search ID for connectedNodeId and activate insignia
+           int insigniaNodeId=-1;
+           for (int x=0; x < NODECOUNT; x++ ) {
+               if ( nodes.node_id[x].compare( g_connectedNodeId ) == 0 )
+                   insigniaNodeId = x;
+           }
+           if ( insigniaNodeId != -1 )
+               activateInsignia(insigniaNodeId, "Incoming connection");
+
+           // Disable 'Go Secure' TODO: and Contacts until terminate
+           m_goSecureButton_active = false;
+           emit goSecureButton_activeChanged();
+
+           // Inbound OTP, remote is 10.10.0.2 (client) and I am 10.10.0.1 (server)
+           g_remoteOtpPeerIp = "10.10.0.2";
+
+           // Erase messaging
+           m_textMsgDisplay = "";
+           emit textMsgDisplayChanged();
+           return 0;
+       }
+
+       /* ping - pong */
+       if ( token[1] == "Ping") {
+           if ( g_connectState ) {
+               QString fifo_command = g_remoteOtpPeerIp + ",message,Pong [ " + mVoltage + " ] [ " + mnetworkStatusLabelValue +" ]";
+               fifoWrite(fifo_command);
+               return 0;
+           }
+       }
+       /* Red Led Setting */
+       if ( token[1] == "Ledredon") {
+           if ( g_connectState ) {
+               runExternalCmd("/bin/pptk-led", {"set", "red", "1"});
+               QString fifo_command = g_remoteOtpPeerIp + ",message,Red led ON [ " + mVoltage + " ] [ " + mnetworkStatusLabelValue +" ]";
+               fifoWrite(fifo_command);
+               return 0;
+           }
+       }
+       if ( token[1] == "Ledredoff") {
+           if ( g_connectState ) {
+               runExternalCmd("/bin/pptk-led", {"set", "red", "0"});
+               QString fifo_command = g_remoteOtpPeerIp + ",message,Red led OFF [ " + mVoltage + " ] [ " + mnetworkStatusLabelValue +" ]";
+               fifoWrite(fifo_command);
+               return 0;
+           }
+       }
+       /* Green Led Setting */
+       if ( token[1] == "Ledgreenon") {
+           if ( g_connectState ) {
+               runExternalCmd("/bin/pptk-led", {"set", "green", "1"});
+               QString fifo_command = g_remoteOtpPeerIp + ",message,Green led ON [ " + mVoltage + " ] [ " + mnetworkStatusLabelValue +" ]";
+               fifoWrite(fifo_command);
+               return 0;
+           }
+       }
+       if ( token[1] == "Ledgreenoff") {
+           if ( g_connectState ) {
+               runExternalCmd("/bin/pptk-led", {"set", "green", "0"});
+               QString fifo_command = g_remoteOtpPeerIp + ",message,Green led OFF [ " + mVoltage + " ] [ " + mnetworkStatusLabelValue +" ]";
+               fifoWrite(fifo_command);
+               return 0;
+           }
+       }
+
+       /* Normal message to be shown. */
+       if (token[1] != "" )
+       {
+           if ( g_connectState == true ) {
+               if ( m_deviceLocked == true ) {
+                   qDebug() << "Message received in locked mode";
+                   lockDevice(UNLOCK_DEVICE);
+               }
+               /* Swipe only unlocked */
+               if ( m_lockScreen_active == false ) {
+                   qDebug() << "Message received in m_lockScreen_active == false";
+                   m_SwipeViewIndex = 1;
+                   emit swipeViewIndexChanged();
+               }
+               /* Vibrate test */
+               runExternalCmd("/bin/pptk-vibrate", {"200","200","1"});
+               /* Display message */
+               token[1].replace( QChar(SUBSTITUTE_CHAR_CODE), "," );
+               m_textMsgDisplay = m_textMsgDisplay + "<br> <font color='#00FF00'>" + token[1] + "</font>";
+               emit textMsgDisplayChanged();
+               return 0;
+           }
+       }
+       return 0;
+}
+
+void engineClass::eraseConnectionLabels()
+{
+    // Erase green status
+    m_peer_0_connection_label = false;
+    m_peer_1_connection_label = false;
+    m_peer_2_connection_label = false;
+    m_peer_3_connection_label = false;
+    m_peer_4_connection_label = false;
+    m_peer_5_connection_label = false;
+    m_peer_6_connection_label = false;
+    m_peer_7_connection_label = false;
+    m_peer_8_connection_label = false;
+    m_peer_9_connection_label = false;
+    emit peer_0_LabelChanged();
+    emit peer_1_LabelChanged();
+    emit peer_2_LabelChanged();
+    emit peer_3_LabelChanged();
+    emit peer_4_LabelChanged();
+    emit peer_5_LabelChanged();
+    emit peer_6_LabelChanged();
+    emit peer_7_LabelChanged();
+    emit peer_8_LabelChanged();
+    emit peer_9_LabelChanged();
+}
+
+/* Incoming connection indicates who connected
+    TODO: Disable contact buttons when incoming connection is active?
+*/
+void engineClass::setIndicatorForIncomingConnection(QString peerIp)
+{
+   eraseConnectionLabels();
+
+    int nodeNumber;
+    for (int x=0; x<NODECOUNT; x++) {
+      if(peerIp.compare(nodes.node_ip[x]) == 0) {
+          nodeNumber=x;
+      }
+    }
+    if( nodeNumber == 0 ) {
+          m_peer_0_connection_label = true;
+          emit peer_0_LabelChanged();
+          m_peer_0_connection_label_color = "#00FF00";
+          emit peer_0_LabelColorChanged();
+    }
+    if( nodeNumber == 1 ) {
+          m_peer_1_connection_label = true;
+          emit peer_1_LabelChanged();
+          m_peer_1_connection_label_color = "#00FF00";
+          emit peer_1_LabelColorChanged();
+    }
+    if( nodeNumber == 2 ) {
+          m_peer_2_connection_label = true;
+          emit peer_2_LabelChanged();
+          m_peer_2_connection_label_color = "#00FF00";
+          emit peer_2_LabelColorChanged();
+    }
+    if( nodeNumber == 3 ) {
+          m_peer_3_connection_label = true;
+          emit peer_3_LabelChanged();
+          m_peer_3_connection_label_color = "#00FF00";
+          emit peer_3_LabelColorChanged();
+    }
+    if( nodeNumber == 4 ) {
+          m_peer_4_connection_label = true;
+          emit peer_4_LabelChanged();
+          m_peer_4_connection_label_color = "#00FF00";
+          emit peer_4_LabelColorChanged();
+    }
+    if( nodeNumber == 5 ) {
+          m_peer_5_connection_label = true;
+          emit peer_5_LabelChanged();
+          m_peer_5_connection_label_color = "#00FF00";
+          emit peer_5_LabelColorChanged();
+    }
+    if( nodeNumber == 6 ) {
+          m_peer_6_connection_label = true;
+          emit peer_6_LabelChanged();
+          m_peer_6_connection_label_color = "#00FF00";
+          emit peer_6_LabelColorChanged();
+    }
+    if( nodeNumber == 7 ) {
+          m_peer_7_connection_label = true;
+          emit peer_7_LabelChanged();
+          m_peer_7_connection_label_color = "#00FF00";
+          emit peer_7_LabelColorChanged();
+    }
+    if( nodeNumber == 8 ) {
+          m_peer_8_connection_label = true;
+          emit peer_8_LabelChanged();
+          m_peer_8_connection_label_color = "#00FF00";
+          emit peer_8_LabelColorChanged();
+    }
+    if( nodeNumber == 9 ) {
+          m_peer_9_connection_label = true;
+          emit peer_9_LabelChanged();
+          m_peer_9_connection_label_color = "#00FF00";
+          emit peer_9_LabelColorChanged();
+    }
+}
+
+void engineClass::fifoWrite(QString message)
+{
+    if ( fifoIn.isOpen() ) {
+        QTextStream in(&fifoIn);        // dummy read
+        QString line = in.readAll();    // dummy read
+    }
+    g_fifoReply = "";
+    QFile file(TELEMETRY_FIFO_IN);
+    if(!file.open(QIODevice::ReadWrite | QIODevice::Text)) {
+        qDebug() << "FIFO Write file open error" << file.errorString();
+    }
+    QTextStream out(&file);
+    out << message << Qt::endl;
+    file.close();
+}
+
+
+/* Telemetry FIFO [PINE] */
+int engineClass::fifoChanged()
+{
+    int nodeNumber;
+    QTextStream in(&fifoIn);
+    QString line = in.readAll();
+
+    if ( line.length() == 0 ) {
+        qDebug() << "EMPTY FIFO Received";
+        return 0;
+    }
+    if(line.compare("telemetryclient_is_alive") == 0) {
+          g_fifoReply = "client_alive";
+    } else {
+
+        /* Main logic for telemetry fifo handling */
+        QStringList token = line.split(',');
+        g_fifoReply = token[1];
+
+        qDebug() << "Telemetry FIFO received:  IP:" << token[0] << " Status: " << token[1];
+
+          if( token[1].compare("available") == 0 )
+          {
+              for (int x=0; x<NODECOUNT; x++) {
+                if(token[0].compare(nodes.node_ip[x]) == 0) {
+                    nodeNumber=x;
+                }
+              }
+              if( nodeNumber == 0 ) {
+                    connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
+                    m_peer_0_connection_label = true;
+                    emit peer_0_LabelChanged();
+                    m_peer_0_connection_label_color = "#00FF00";
+                    emit peer_0_LabelColorChanged();
+              }
+              if( nodeNumber == 1 ) {
+                    connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
+                    m_peer_1_connection_label = true;
+                    emit peer_1_LabelChanged();
+                    m_peer_1_connection_label_color = "#00FF00";
+                    emit peer_1_LabelColorChanged();
+              }
+              if( nodeNumber == 2 ) {
+                    connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
+                    m_peer_2_connection_label = true;
+                    emit peer_2_LabelChanged();
+                    m_peer_2_connection_label_color = "#00FF00";
+                    emit peer_2_LabelColorChanged();
+              }
+              if( nodeNumber == 3 ) {
+                    connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
+                    m_peer_3_connection_label = true;
+                    emit peer_3_LabelChanged();
+                    m_peer_3_connection_label_color = "#00FF00";
+                    emit peer_3_LabelColorChanged();
+              }
+              if( nodeNumber == 4 ) {
+                    connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
+                    m_peer_4_connection_label = true;
+                    emit peer_4_LabelChanged();
+                    m_peer_4_connection_label_color = "#00FF00";
+                    emit peer_4_LabelColorChanged();
+              }
+              if( nodeNumber == 5 ) {
+                    connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
+                    m_peer_5_connection_label = true;
+                    emit peer_5_LabelChanged();
+                    m_peer_5_connection_label_color = "#00FF00";
+                    emit peer_5_LabelColorChanged();
+              }
+              if( nodeNumber == 6 ) {
+                    connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
+                    m_peer_6_connection_label = true;
+                    emit peer_6_LabelChanged();
+                    m_peer_6_connection_label_color = "#00FF00";
+                    emit peer_6_LabelColorChanged();
+              }
+              if( nodeNumber == 7 ) {
+                    connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
+                    m_peer_7_connection_label = true;
+                    emit peer_7_LabelChanged();
+                    m_peer_7_connection_label_color = "#00FF00";
+                    emit peer_7_LabelColorChanged();
+              }
+              if( nodeNumber == 8 ) {
+                    connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
+                    m_peer_8_connection_label = true;
+                    emit peer_8_LabelChanged();
+                    m_peer_8_connection_label_color = "#00FF00";
+                    emit peer_8_LabelColorChanged();
+              }
+              if( nodeNumber == 9 ) {
+                    connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
+                    m_peer_9_connection_label = true;
+                    emit peer_9_LabelChanged();
+                    m_peer_9_connection_label_color = "#00FF00";
+                    emit peer_9_LabelColorChanged();
+              }
+          }
+          // TODO: Terminate should erase 'red ones'
+          if( token[1].compare("offline") == 0 )
+          {
+              for (int x=0; x<NODECOUNT; x++) {
+                if(token[0].compare(nodes.node_ip[x]) == 0) {
+                    nodeNumber=x;
+                }
+              }
+              if( nodeNumber == 0 ) {
+                  m_peer_0_connection_label = true;
+                  emit peer_0_LabelChanged();
+                  m_peer_0_connection_label_color = "red";
+                  emit peer_0_LabelColorChanged();
+              }
+              if( nodeNumber == 1 ) {
+                  m_peer_1_connection_label = true;
+                  emit peer_1_LabelChanged();
+                  m_peer_1_connection_label_color = "red";
+                  emit peer_1_LabelColorChanged();
+              }
+              if( nodeNumber == 2 ) {
+                  m_peer_2_connection_label = true;
+                  emit peer_2_LabelChanged();
+                  m_peer_2_connection_label_color = "red";
+                  emit peer_2_LabelColorChanged();
+              }
+              if( nodeNumber == 3 ) {
+                  m_peer_3_connection_label = true;
+                  emit peer_3_LabelChanged();
+                  m_peer_3_connection_label_color = "red";
+                  emit peer_3_LabelColorChanged();
+              }
+              if( nodeNumber == 4 ) {
+                  m_peer_4_connection_label = true;
+                  emit peer_4_LabelChanged();
+                  m_peer_4_connection_label_color = "red";
+                  emit peer_4_LabelColorChanged();
+              }
+              if( nodeNumber == 5 ) {
+                  m_peer_5_connection_label = true;
+                  emit peer_5_LabelChanged();
+                  m_peer_5_connection_label_color = "red";
+                  emit peer_5_LabelColorChanged();
+              }
+              if( nodeNumber == 6 ) {
+                  m_peer_6_connection_label = true;
+                  emit peer_6_LabelChanged();
+                  m_peer_6_connection_label_color = "red";
+                  emit peer_6_LabelColorChanged();
+              }
+              if( nodeNumber == 7 ) {
+                  m_peer_7_connection_label = true;
+                  emit peer_7_LabelChanged();
+                  m_peer_7_connection_label_color = "red";
+                  emit peer_7_LabelColorChanged();
+              }
+              if( nodeNumber == 8 ) {
+                  m_peer_8_connection_label = true;
+                  emit peer_8_LabelChanged();
+                  m_peer_8_connection_label_color = "red";
+                  emit peer_8_LabelColorChanged();
+              }
+              if( nodeNumber == 9 ) {
+                  m_peer_9_connection_label = true;
+                  emit peer_9_LabelChanged();
+                  m_peer_9_connection_label_color = "red";
+                  emit peer_9_LabelColorChanged();
+              }
+          }
+
+          if( token[1].compare("terminate_ready") == 0 )
+          {
+              updateCallStatusIndicator("OTP disconnected", "green", "transparent",INDICATE_ONLY );
+              eraseConnectionLabels();
+              m_callSignInsigniaImage = "";
+              m_insigniaLabelText = "";
+              m_insigniaLabelStateText = "";
+              emit callSignInsigniaImageChanged();
+              emit insigniaLabelTextChanged();
+              emit insigniaLabelStateTextChanged();
+              m_goSecureButton_active = false;
+              emit goSecureButton_activeChanged();
+          }
+          if( token[1].compare("busy") == 0 )
+          {
+              updateCallStatusIndicator("Remote busy", "green", "transparent",LOG_ONLY );
+          }
+          if( token[1].compare("offline") == 0 )
+          {
+              updateCallStatusIndicator("Remote offline", "green", "transparent",LOG_ONLY );
+          }
+      }
+
+    /* Other status codes (TODO):
+        busy
+        terminate_ready
+        prepare_ready
+        ring_ready
+    */
+    return 0;
+}
+
+/* Connect as client ('initiator') to peer ('as OTP server') */
+void engineClass::connectAsClient(QString nodeIp, QString nodeId)
+{
+    // 1. Send 'prepare' to recipient via FIFO
+    QString prepareFifoCmd = nodeIp + ",prepare";
+    fifoWrite(prepareFifoCmd);
+
+    // Wait FIFO with timeout
+    if ( waitForFifoReply() == FIFO_TIMEOUT ) {
+        updateCallStatusIndicator("Timeout. Aborting.", "green", "transparent",LOG_ONLY );
+        return;
+    }
+
+    updateCallStatusIndicator("Remote prepared", "black","yellow",LOG_AND_INDICATE);
+
+    // 2. Start local service for OTP to targeted node as 'client' role
+    QString serviceNameAsClient = "connect-with-"+nodeId+"-c.service";
+    qint64 pid;
+    QProcess process;
+    process.setProgram("systemctl");
+    process.setArguments({"start",serviceNameAsClient});
+    process.startDetached(&pid);
+
+    // 3. Touch local file
+    touchLocalFile("/tmp/CLIENT_CALL_ACTIVE");
+
+    // Now we should have OTP connectivity ready
+    g_connectState = true;
+    g_connectedNodeId = nodeId;
+    g_connectedNodeIp = nodeIp;
+
+    // 4. Indicate OTP connected
+    updateCallStatusIndicator("OTP connected", "lightgreen", "transparent",INDICATE_ONLY);
+
+    // Update insignia status text
+    m_insigniaLabelStateText = "Connected";
+    emit insigniaLabelStateTextChanged();
+
+    // Erase messaging history
+    m_textMsgDisplay = "";
+    emit textMsgDisplayChanged();
+
+    // 4.5 We should disable Peer keys when connected (TODO)
+    // setContactButtons(false);
+
+    // Enable 'Go Secure' when connection is made as Client role
+    m_goSecureButton_active = true;
+    emit goSecureButton_activeChanged();
+
+    // 5. Set fixed remote IP based on client role of connection (and client is 10.10.0.2)
+    g_remoteOtpPeerIp = "10.10.0.1";
+
+    // TODO: This is utilized when MSG's are sent over OTP channel. (work in progress)
+
+    // 6. Indicate remote peer UI that we're connected WORK IN PROGRESS!!
+    QString informRemoteUi = nodeIp + ",message,client_connected;"+nodes.myNodeId+";"+nodes.myNodeIp+";"+nodes.myNodeName;
+    fifoWrite(informRemoteUi);
+
+    // Wait FIFO with timeout
+    if ( waitForFifoReply() == FIFO_TIMEOUT ) {
+        updateCallStatusIndicator("Timeout. Aborting.", "green", "transparent",LOG_ONLY );
+        return;
+    }
+
+    // 7. Audio gets established by remote end sending 'answer'
+    //    after 'Go Secure' is pressed. So it's actually remote peer
+    //    who activates audio on this calling 'client' side (!)
+
+    // 8. After termination => terminate_ready
+
+}
+
+/* Disconnect from 'client' side */
+void engineClass::disconnectAsClient(QString nodeIp, QString nodeId)
+{
+    // 1. terminate to FIFO
+    QString terminateFifoCmd = nodeIp + ",terminate";
+    fifoWrite(terminateFifoCmd);
+
+    // Wait FIFO with timeout
+    if ( waitForFifoReply() == FIFO_TIMEOUT ) {
+        updateCallStatusIndicator("Timeout. Aborting.", "green", "transparent",LOG_ONLY );
+        return;
+    }
+
+    // 2a. stop local service for targeted node (as client)
+    QString serviceNameAsClient = "connect-with-"+nodeId+"-c.service";
+    qint64 pid;
+    QProcess process;
+    process.setProgram("systemctl");
+    process.setArguments({"stop",serviceNameAsClient});
+    process.startDetached(&pid);
+
+    // 2b. stop local service for targeted node (as server)
+    QString serviceNameAsServer = "connect-with-"+nodeId+"-s.service";
+    qint64 s_pid;
+    QProcess s_process;
+    s_process.setProgram("systemctl");
+    s_process.setArguments({"stop",serviceNameAsServer});
+    s_process.startDetached(&s_pid);
+
+    // 3. Remove status file
+    removeLocalFile("/tmp/CLIENT_CALL_ACTIVE");
+
+    // 4 Send UI message to remote for disconnect indications for remote UI
+    QString informRemoteUi = nodeIp + ",message,remote_hangup";
+    fifoWrite(informRemoteUi);
+
+    // Wait FIFO with timeout
+    if ( waitForFifoReply() == FIFO_TIMEOUT ) {
+        updateCallStatusIndicator("Timeout. Aborting.", "green", "transparent",LOG_ONLY );
+        return;
+    }
+
+    // 5. Terminate local audio (TODO)
+    // 'telemetryclient' knows how to terminate audio, based on how it's established (client or server)
+    QString terminateAudioFifoCmd = "127.0.0.1,disconnect_audio";
+    fifoWrite(terminateAudioFifoCmd);
+    g_connectState = false;
+    g_connectedNodeId = "";
+    g_connectedNodeIp = "";
+    g_remoteOtpPeerIp = "";
+
+}
+
+/* Go Secure button clicked ('Call') */
+void engineClass::on_goSecure_clicked()
+{
+    updateCallStatusIndicator("Waiting remote", "lightgreen","transparent",INDICATE_ONLY);
+    // This is shell script ring -> ring_ready
+    QString callString = g_connectedNodeIp + ",ring";
+    fifoWrite( callString );
+    // Wait FIFO with timeout
+    if ( waitForFifoReply() == FIFO_TIMEOUT ) {
+        updateCallStatusIndicator("Timeout. Aborting.", "green", "transparent",LOG_ONLY );
+        return;
+    }
+    // Ring also on UI
+    callString = g_connectedNodeIp + ",message,ring";
+    fifoWrite( callString );
+}
+
+// NOTE: Pine version does not use (yet) method & colors !!
+void engineClass::updateCallStatusIndicator(QString text, QString fontColor, QString backgroundColor, int logMethod )
+{
+    m_statusMessage = text;
+    emit statusMessageChanged();
+}
+void engineClass::touchLocalFile(QString filename)
+{
+    QFile touchFile(filename);
+    touchFile.open( QIODevice::WriteOnly);
+    touchFile.close();
+}
+void engineClass::removeLocalFile(QString filename)
+{
+    QFile file (filename);
+    file.remove();
+}
+
+/* Sample debug from QML side: eClass.debugThis('string') */
+void engineClass::debugThis(QString debugMessage)
+{
+    qDebug() << "Engine class debug: " << debugMessage;
+
+}
+
+void engineClass::powerOff()
+{
+    // disconnectButton(); // blocks
+    qint64 pid;
+    QProcess process;
+    process.setProgram("systemctl");
+    process.setArguments({"poweroff"});
+    process.startDetached(&pid);
+}
+
+QString engineClass::getPeer_0_Name()
+{
+    return m_peer_0_CallSign;
+}
+QString engineClass::getPeer_1_Name()
+{
+    return m_peer_1_CallSign;
+}
+QString engineClass::getPeer_2_Name()
+{
+    return m_peer_2_CallSign;
+}
+QString engineClass::getPeer_3_Name()
+{
+    return m_peer_3_CallSign;
+}
+QString engineClass::getPeer_4_Name()
+{
+    return m_peer_4_CallSign;
+}
+QString engineClass::getPeer_5_Name()
+{
+    return m_peer_5_CallSign;
+}
+QString engineClass::getPeer_6_Name()
+{
+    return m_peer_6_CallSign;
+}
+QString engineClass::getPeer_7_Name()
+{
+    return m_peer_7_CallSign;
+}
+QString engineClass::getPeer_8_Name()
+{
+    return m_peer_8_CallSign;
+}
+QString engineClass::getPeer_9_Name()
+{
+    return m_peer_9_CallSign;
+}
+
+
+QString engineClass::getPeer_0_NameColor()
+{
+    return m_peer_0_CallSignColor;
+}
+QString engineClass::getPeer_1_NameColor()
+{
+    return m_peer_1_CallSignColor;
+}
+QString engineClass::getPeer_2_NameColor()
+{
+    return m_peer_2_CallSignColor;
+}
+QString engineClass::getPeer_3_NameColor()
+{
+    return m_peer_3_CallSignColor;
+}
+QString engineClass::getPeer_4_NameColor()
+{
+    return m_peer_4_CallSignColor;
+}
+QString engineClass::getPeer_5_NameColor()
+{
+    return m_peer_5_CallSignColor;
+}
+QString engineClass::getPeer_6_NameColor()
+{
+    return m_peer_6_CallSignColor;
+}
+QString engineClass::getPeer_7_NameColor()
+{
+    return m_peer_7_CallSignColor;
+}
+QString engineClass::getPeer_8_NameColor()
+{
+    return m_peer_8_CallSignColor;
+}
+QString engineClass::getPeer_9_NameColor()
+{
+    return m_peer_9_CallSignColor;
+}
+
+
+bool engineClass::getPeer_0_Label()
+{
+    return m_peer_0_connection_label;
+}
+
+bool engineClass::getPeer_1_Label()
+{
+    return m_peer_1_connection_label;
+}
+bool engineClass::getPeer_2_Label()
+{
+    return m_peer_2_connection_label;
+}
+bool engineClass::getPeer_3_Label()
+{
+    return m_peer_3_connection_label;
+}
+bool engineClass::getPeer_4_Label()
+{
+    return m_peer_4_connection_label;
+}
+bool engineClass::getPeer_5_Label()
+{
+    return m_peer_5_connection_label;
+}
+bool engineClass::getPeer_6_Label()
+{
+    return m_peer_6_connection_label;
+}
+bool engineClass::getPeer_7_Label()
+{
+    return m_peer_7_connection_label;
+}
+bool engineClass::getPeer_8_Label()
+{
+    return m_peer_8_connection_label;
+}
+bool engineClass::getPeer_9_Label()
+{
+    return m_peer_9_connection_label;
+}
+
+
+QString engineClass::getPeer_0_Label_color()
+{
+    return m_peer_0_connection_label_color;
+}
+QString engineClass::getPeer_1_Label_color()
+{
+    return m_peer_1_connection_label_color;
+}
+QString engineClass::getPeer_2_Label_color()
+{
+    return m_peer_2_connection_label_color;
+}
+QString engineClass::getPeer_3_Label_color()
+{
+    return m_peer_3_connection_label_color;
+}
+QString engineClass::getPeer_4_Label_color()
+{
+    return m_peer_4_connection_label_color;
+}
+QString engineClass::getPeer_5_Label_color()
+{
+    return m_peer_5_connection_label_color;
+}
+QString engineClass::getPeer_6_Label_color()
+{
+    return m_peer_6_connection_label_color;
+}
+QString engineClass::getPeer_7_Label_color()
+{
+    return m_peer_7_connection_label_color;
+}
+QString engineClass::getPeer_8_Label_color()
+{
+    return m_peer_8_connection_label_color;
+}
+QString engineClass::getPeer_9_Label_color()
+{
+    return m_peer_9_connection_label_color;
+}
+
+
+bool engineClass::getButton_0_active()
+{
+    return m_button_0_active;
+}
+bool engineClass::getButton_1_active()
+{
+    return m_button_1_active;
+}
+bool engineClass::getButton_2_active()
+{
+    return m_button_2_active;
+}
+bool engineClass::getButton_3_active()
+{
+    return m_button_3_active;
+}
+bool engineClass::getButton_4_active()
+{
+    return m_button_4_active;
+}
+bool engineClass::getButton_5_active()
+{
+    return m_button_5_active;
+}
+bool engineClass::getButton_6_active()
+{
+    return m_button_5_active;
+}
+bool engineClass::getButton_7_active()
+{
+    return m_button_5_active;
+}
+bool engineClass::getButton_8_active()
+{
+    return m_button_5_active;
+}
+bool engineClass::getButton_9_active()
+{
+    return m_button_5_active;
+}
+
+QString engineClass::getPeer_0_keyPercentage()
+{
+    QString keyValueString="";
+    if ( m_keyPersentage_incount[0] != "" ) {
+        keyValueString=m_keyPersentage_incount[0] + "/" + m_keyPersentage_outcount[0];
+    }
+    return keyValueString;
+}
+
+QString engineClass::getPeer_1_keyPercentage()
+{
+    QString keyValueString="";
+    if ( m_keyPersentage_incount[1] != "" ) {
+        keyValueString=m_keyPersentage_incount[1] + "/" + m_keyPersentage_outcount[1];
+    }
+    return keyValueString;
+}
+QString engineClass::getPeer_2_keyPercentage()
+{
+    QString keyValueString="";
+    if ( m_keyPersentage_incount[2] != "" ) {
+        keyValueString=m_keyPersentage_incount[2] + "/" + m_keyPersentage_outcount[2];
+    }
+    return keyValueString;
+}
+QString engineClass::getPeer_3_keyPercentage()
+{
+    QString keyValueString="";
+    if ( m_keyPersentage_incount[3] != "" ) {
+        keyValueString=m_keyPersentage_incount[3] + "/" + m_keyPersentage_outcount[3];
+    }
+    return keyValueString;
+}
+QString engineClass::getPeer_4_keyPercentage()
+{
+    QString keyValueString="";
+    if ( m_keyPersentage_incount[4] != "" ) {
+        keyValueString=m_keyPersentage_incount[4] + "/" + m_keyPersentage_outcount[4];
+    }
+    return keyValueString;
+}
+QString engineClass::getPeer_5_keyPercentage()
+{
+    QString keyValueString="";
+    if ( m_keyPersentage_incount[5] != "" ) {
+        keyValueString=m_keyPersentage_incount[5] + "/" + m_keyPersentage_outcount[5];
+    }
+    return keyValueString;
+}
+
+QString engineClass::getPeer_6_keyPercentage()
+{
+    QString keyValueString="";
+    if ( m_keyPersentage_incount[6] != "" ) {
+        keyValueString=m_keyPersentage_incount[6] + "/" + m_keyPersentage_outcount[6];
+    }
+    return keyValueString;
+}
+QString engineClass::getPeer_7_keyPercentage()
+{
+    QString keyValueString="";
+    if ( m_keyPersentage_incount[7] != "" ) {
+        keyValueString=m_keyPersentage_incount[7] + "/" + m_keyPersentage_outcount[7];
+    }
+    return keyValueString;
+}
+QString engineClass::getPeer_8_keyPercentage()
+{
+    QString keyValueString="";
+    if ( m_keyPersentage_incount[8] != "" ) {
+        keyValueString=m_keyPersentage_incount[8] + "/" + m_keyPersentage_outcount[8];
+    }
+    return keyValueString;
+}
+QString engineClass::getPeer_9_keyPercentage()
+{
+    QString keyValueString="";
+    if ( m_keyPersentage_incount[9] != "" ) {
+        keyValueString=m_keyPersentage_incount[9] + "/" + m_keyPersentage_outcount[9];
+    }
+    return keyValueString;
+}
+
+
+bool engineClass::getTouchBlock_active()
+{
+    return m_touchBlock_active;
+}
+
+bool engineClass::getLockScreen_active()
+{
+    return m_lockScreen_active;
+}
+bool engineClass::getCamoScreen_active()
+{
+    return m_camoScreen_active;
+}
+
+bool engineClass::getVaultScreen_active()
+{
+    return m_vaultModeActive;
+}
+
+QString engineClass::getVaultScreenNotifyText()
+{
+    return m_vaultNotifyText;
+}
+
+QString engineClass::getVaultScreenNotifyColor()
+{
+    return m_vaultNotifyColor;
+}
+
+QString engineClass::getVaultScreenNotifyTextColor()
+{
+    return m_vaultNotifyTextColor;
+}
+
+
+// START
+void engineClass::onVaultProcessReadyReadStdOutput()
+{
+    vaultOpenProcess.setReadChannel(QProcess::StandardOutput);
+    QTextStream stream(&vaultOpenProcess);
+    while (!stream.atEnd()) {
+       QString line = stream.readLine();
+       m_vaultNotifyText = "SUCCESS";
+       m_vaultNotifyColor = "green";
+       m_vaultNotifyTextColor = "white";
+       emit vaultScreenNotifyTextChanged();
+       emit vaultScreenNotifyColorChanged();
+       emit vaultScreenNotifyTextColorChanged();
+       QTimer::singleShot(4 * 1000, this, SLOT(exitVaultOpenProcess()));
+    }
+}
+void engineClass::exitVaultOpenProcess()
+{
+    QCoreApplication::quit();
+}
+
+void engineClass::exitVaultOpenProcessWithFail()
+{
+    m_lockScreenPinCode="";
+    m_vaultNotifyText = "ENTER VAULT PIN";
+    m_vaultNotifyColor = "red";
+    m_vaultNotifyTextColor = "white";
+    emit lockScreenPinCodeChanged();
+    emit vaultScreenNotifyTextChanged();
+    emit vaultScreenNotifyColorChanged();
+    emit vaultScreenNotifyTextColorChanged();
+}
+
+void engineClass::onVaultProcessFinished()
+{
+    QString perr = vaultOpenProcess.readAllStandardError();
+    if (perr.length()) {
+        m_vaultNotifyText = "FAILED";
+        m_vaultNotifyColor = "red";
+        m_vaultNotifyTextColor = "white";
+        emit vaultScreenNotifyTextChanged();
+        emit vaultScreenNotifyColorChanged();
+        emit vaultScreenNotifyTextColorChanged();
+        QTimer::singleShot(5 * 1000, this, SLOT(exitVaultOpenProcessWithFail()));
+    }
+}
+
+
+int engineClass::lockNumberEntry(int pinCodeNumber)
+{
+    /* 99 is 'enter' */
+    if ( pinCodeNumber == 99 ) {
+
+
+        if ( m_vaultModeActive == true ) {
+            /* VAULT mode */
+            QString vaultPinCode = m_lockScreenPinCode;
+            if ( vaultPinCode.length() > 3 ) {
+                vaultOpenProcess.connect(&vaultOpenProcess,
+                                         &QProcess::readyReadStandardOutput,
+                                         this, &engineClass::onVaultProcessReadyReadStdOutput);
+                vaultOpenProcess.connect(&vaultOpenProcess,
+                                         (void (QProcess::*)(int,QProcess::ExitStatus))&QProcess::finished,
+                                         this, &engineClass::onVaultProcessFinished);
+
+                m_vaultNotifyText = "CHECKING";
+                m_vaultNotifyColor = "yellow";
+                m_vaultNotifyTextColor = "red";
+                emit vaultScreenNotifyTextChanged();
+                emit vaultScreenNotifyColorChanged();
+                emit vaultScreenNotifyTextColorChanged();
+                m_lockScreenPinCode="••••";
+                emit lockScreenPinCodeChanged();
+                vaultOpenProcess.setProgram("/bin/vault-pin.sh");
+                vaultOpenProcess.setArguments({vaultPinCode});
+                vaultOpenProcess.start();
+            } else {
+                m_lockScreenPinCode="";
+                emit lockScreenPinCodeChanged();
+            }
+        } else {
+            /* NORMAL mode */
+            if ( m_lockScreenPinCode.compare( uPref.m_pinCode ) == 0 ) {
+                m_lockScreenPinCode="";
+                emit lockScreenPinCodeChanged();
+                m_lockScreen_active=false;
+                emit lockScreen_activeChanged();
+                return 0;
+            }
+            if ( m_lockScreenPinCode.compare( "1234" ) == 0 ) {
+                m_lockScreenPinCode="";
+                emit lockScreenPinCodeChanged();
+                m_lockScreen_active=false;
+                emit lockScreen_activeChanged();
+                m_camoScreen_active = true;
+                emit camoScreen_activeChanged();
+                return 0;
+            }
+        }
+        m_lockScreenPinCode="";
+        emit lockScreenPinCodeChanged();
+    }
+
+    /* backspace */
+    if ( pinCodeNumber == 100 && m_lockScreenPinCode.length() > 0 ) {
+        m_lockScreenPinCode.chop(1);
+        emit lockScreenPinCodeChanged();
+        return 0;
+    }
+
+    /* show number */
+    if ( m_lockScreenPinCode.length() < 6 && pinCodeNumber != 100 && pinCodeNumber != 99 ) {
+        m_lockScreenPinCode = m_lockScreenPinCode + QString::number(pinCodeNumber);
+        emit lockScreenPinCodeChanged();
+    }
+    return 0;
+}
+
+QString engineClass::getLockScreenPinCode()
+{
+    return m_lockScreenPinCode;
+}
+
+bool engineClass::getGoSecureButton_active()
+{
+    return m_goSecureButton_active;
+}
+
+/* TODO: What is return value is NULL to QML ? <= wtf is this ? */
+QString engineClass::getStatusMessage()
+{
+    return m_statusMessage;
+}
+
+QString engineClass::getMyCallSign()
+{
+    if ( nodes.myNodeName == NULL ) {
+        return "wait";
+    } else {
+        return nodes.myNodeName;
+    }
+}
+
+QString engineClass::getCallSignInsigniaImage()
+{
+    return m_callSignInsigniaImage;
+}
+QString engineClass::getInsigniaLabelText()
+{
+    return m_insigniaLabelText;
+    QString m_insigniaLabelStateText="";
+}
+QString engineClass::getInsigniaLabelStateText()
+{
+    return m_insigniaLabelStateText;
+}
+
+int engineClass::getSwipeViewIndex()
+{
+    return m_SwipeViewIndex;
+}
+
+bool engineClass::getCallDialogVisible()
+{
+    return m_callDialogVisible;
+}
+
+QString engineClass::getVoltageValue()
+{
+    return mVoltage;
+}
+
+QString engineClass::getVoltageNotifyColor()
+{
+    return mvoltageNotifyColor;
+}
+
+QString engineClass::getNetworkStatusLabel()
+{
+    return mnetworkStatusLabelValue;
+}
+QString engineClass::getNetworkStatusLabelColor()
+{
+    return mnetworkStatusLabelColor;
+}
+
+void engineClass::activateInsignia(int node_id, QString stateText)
+{
+    // Set insignia image (0=alpha etc)
+    if (node_id==0) {
+        m_callSignInsigniaImage="alpha.png";
+        m_insigniaLabelText=nodes.node_name[node_id];
+        m_insigniaLabelStateText=stateText;
+        emit callSignInsigniaImageChanged();
+        emit insigniaLabelTextChanged();
+        emit insigniaLabelStateTextChanged();
+    }
+    if (node_id==1) {
+        m_callSignInsigniaImage="bravo.png";
+        m_insigniaLabelText=nodes.node_name[node_id];
+        m_insigniaLabelStateText=stateText;
+        emit callSignInsigniaImageChanged();
+        emit insigniaLabelTextChanged();
+        emit insigniaLabelStateTextChanged();
+    }
+    if (node_id==2) {
+        m_callSignInsigniaImage="charlie.png";
+        m_insigniaLabelText=nodes.node_name[node_id];
+        m_insigniaLabelStateText=stateText;
+        emit callSignInsigniaImageChanged();
+        emit insigniaLabelTextChanged();
+        emit insigniaLabelStateTextChanged();
+    }
+    if (node_id==3) {
+        m_callSignInsigniaImage="delta.png";
+        m_insigniaLabelText=nodes.node_name[node_id];
+        m_insigniaLabelStateText=stateText;
+        emit callSignInsigniaImageChanged();
+        emit insigniaLabelTextChanged();
+        emit insigniaLabelStateTextChanged();
+    }
+    if (node_id==4) {
+        m_callSignInsigniaImage="echo.png";
+        m_insigniaLabelText=nodes.node_name[node_id];
+        m_insigniaLabelStateText=stateText;
+        emit callSignInsigniaImageChanged();
+        emit insigniaLabelTextChanged();
+        emit insigniaLabelStateTextChanged();
+    }
+    if (node_id==5) {
+        m_callSignInsigniaImage="foxrot.png";
+        m_insigniaLabelText=nodes.node_name[node_id];
+        m_insigniaLabelStateText=stateText;
+        emit callSignInsigniaImageChanged();
+        emit insigniaLabelTextChanged();
+        emit insigniaLabelStateTextChanged();
+    }
+    if (node_id==6) {
+        m_callSignInsigniaImage="golf.png";
+        m_insigniaLabelText=nodes.node_name[node_id];
+        m_insigniaLabelStateText=stateText;
+        emit callSignInsigniaImageChanged();
+        emit insigniaLabelTextChanged();
+        emit insigniaLabelStateTextChanged();
+    }
+    if (node_id==7) {
+        m_callSignInsigniaImage="hotel.png";
+        m_insigniaLabelText=nodes.node_name[node_id];
+        m_insigniaLabelStateText=stateText;
+        emit callSignInsigniaImageChanged();
+        emit insigniaLabelTextChanged();
+        emit insigniaLabelStateTextChanged();
+    }
+    if (node_id==8) {
+        m_callSignInsigniaImage="india.png";
+        m_insigniaLabelText=nodes.node_name[node_id];
+        m_insigniaLabelStateText=stateText;
+        emit callSignInsigniaImageChanged();
+        emit insigniaLabelTextChanged();
+        emit insigniaLabelStateTextChanged();
+    }
+    if (node_id==9) {
+        m_callSignInsigniaImage="juliet.png";
+        m_insigniaLabelText=nodes.node_name[node_id];
+        m_insigniaLabelStateText=stateText;
+        emit callSignInsigniaImageChanged();
+        emit insigniaLabelTextChanged();
+        emit insigniaLabelStateTextChanged();
+    }
+
+
+}
+
+/* Connect to peer buttons pressed with ID */
+void engineClass::connectButton(int node_id)
+{
+    eraseConnectionLabels();
+    QString scanCmd = nodes.node_ip[node_id] + ",status";
+    fifoWrite(scanCmd);
+    activateInsignia(node_id, "Selected");
+    // TODO: Can we say 'connected to' - without verified connect status?
+    QString connectStatusString = "Connected to " + nodes.node_name[node_id];
+    updateCallStatusIndicator(connectStatusString, "green", "transparent",LOG_AND_INDICATE);
+}
+
+/* Terminate button */
+void engineClass::disconnectButton()
+{
+    if ( g_connectState ) {
+        disconnectAsClient(g_connectedNodeIp, g_connectedNodeId);
+    }
+    updateCallStatusIndicator("Connection terminated.", "green", "transparent",LOG_AND_INDICATE);
+    m_callSignInsigniaImage = "";
+    m_insigniaLabelText = "";
+    m_insigniaLabelStateText = "";
+    emit callSignInsigniaImageChanged();
+    emit insigniaLabelTextChanged();
+    emit insigniaLabelStateTextChanged();
+    m_goSecureButton_active = false;
+    emit goSecureButton_activeChanged();
+    m_SwipeViewIndex = 0;
+    emit swipeViewIndexChanged();
+    m_textMsgDisplay = "";
+    emit textMsgDisplayChanged();
+    m_callDialogVisible = false;
+    emit callDialogVisibleChanged();
+    eraseConnectionLabels();
+    reloadKeyUsage();
+}
+
+/* Popup buttons for CALL dialog */
+void engineClass::on_answerButton_clicked()
+{
+    updateCallStatusIndicator("Accepted", "green","transparent",LOG_AND_INDICATE);
+
+    // Send UI indication that we answered succesfully (TEST) WORK IN PROGRESS
+    QString answerString = g_connectedNodeIp + ",message,answer_success";
+    fifoWrite( answerString );
+    // Wait FIFO with timeout
+    if ( waitForFifoReply() == FIFO_TIMEOUT ) {
+        updateCallStatusIndicator("Timeout. Aborting.", "green", "transparent",LOG_ONLY );
+        return;
+    }
+
+    // Send answer to telemetry server
+    answerString = g_connectedNodeIp + ",answer";
+    fifoWrite( answerString );
+    // Wait FIFO with timeout
+    if ( waitForFifoReply() == FIFO_TIMEOUT ) {
+        updateCallStatusIndicator("Timeout. Aborting.", "green", "transparent",LOG_ONLY );
+        return;
+    }
+
+    // Connect audio as Server
+    answerString = "127.0.0.1,connect_audio_as_server";
+    fifoWrite( answerString );
+    updateCallStatusIndicator("Audio connected", "green","transparent",INDICATE_ONLY);
+}
+
+void engineClass::on_denyButton_clicked()
+{
+    QString hangupCommandString = g_connectedNodeIp + ",hangup";
+    fifoWrite( hangupCommandString );
+
+    if ( waitForFifoReply() == FIFO_TIMEOUT ) {
+        updateCallStatusIndicator("Timeout. Aborting.", "green", "transparent",LOG_ONLY );
+        return;
+    }
+
+    // Turn off local audio
+    hangupCommandString = "127.0.0.1,disconnect_audio";
+    fifoWrite( hangupCommandString );
+    updateCallStatusIndicator("Incoming Terminated", "green","transparent",LOG_AND_INDICATE);
+
+    // Erase gree status, insignia
+    m_callDialogVisible = false;
+    emit callDialogVisibleChanged();
+    eraseConnectionLabels();
+    m_callSignInsigniaImage = "";
+    m_insigniaLabelText = "";
+    m_insigniaLabelStateText = "";
+    emit callSignInsigniaImageChanged();
+    emit insigniaLabelTextChanged();
+    emit insigniaLabelStateTextChanged();
+}
+
+void engineClass::on_LineEdit_returnPressed(QString message)
+{
+    if ( g_connectState ) {
+        m_textMsgDisplay = m_textMsgDisplay + "<br> <font color='#ffffff'>" + message + "</font>";
+        emit textMsgDisplayChanged();
+        message.replace( ",", QChar(SUBSTITUTE_CHAR_CODE) );
+        QString fifo_command = g_remoteOtpPeerIp + ",message," + message;
+        fifoWrite(fifo_command);
+    } else {
+        m_textMsgDisplay = "<font color='#00ff00'>NOTE: You are not connected!</font>";
+        emit textMsgDisplayChanged();
+    }
+}
+
+/* Timeout for FIFO replies */
+int engineClass::waitForFifoReply() {
+    g_fifoCheckInProgress = true;
+    fifoReplyTimer = new QTimer(this);
+    fifoReplyTimer->start(10000); // 10 s
+    connect(fifoReplyTimer, SIGNAL(timeout()), this, SLOT(checkFifoReplyTimeout()) );
+
+        while ( g_fifoReply == "" && g_fifoCheckInProgress == true ) {
+            QCoreApplication::processEvents();
+            if ( g_fifoReply != "" ) {
+                fifoReplyTimer->stop();
+                return FIFO_REPLY_RECEIVED;
+            }
+        }
+
+    if ( g_fifoReply == "" && g_fifoCheckInProgress == false )
+        return FIFO_TIMEOUT;
+}
+
+int engineClass::checkFifoReplyTimeout() {
+    g_fifoCheckInProgress = false;
+    fifoReplyTimer->stop();
+    return 0;
+}
+
+
+QString engineClass::getTextMsgDisplay()
+{
+    return m_textMsgDisplay;
+}
+
+long int engineClass::get_file_size(QString keyFilename)
+{
+    long int size = 0;
+    QFile myFile(keyFilename);
+    if (myFile.open(QIODevice::ReadOnly)){
+        size = myFile.size();
+        myFile.close();
+        return size;
+    }
+    return -1;
+}
+
+long int engineClass::get_key_index(QString counterFilename)
+{
+    long int index=0;
+    FILE *keyindex_file;
+    std::string str = counterFilename.toStdString();
+    const char* filename = str.c_str();
+    keyindex_file = fopen(filename, "rb");
+    fread(&index, sizeof(long int),1,keyindex_file);
+    fclose(keyindex_file);
+    return index;
+}
+
+/* WIFI */
+
+QString engineClass::getWifiStatusText()
+{
+    return m_wifiStatusText;
+}
+
+QString engineClass::getWifiNotifyText()
+{
+    return m_wifiNotifyText;
+}
+QString engineClass::getWifiNotifyColor()
+{
+    return m_wifiNotifyColor;
+}
+
+void engineClass::wifiScanButton()
+{
+    m_wifiStatusText = "Scanning...";
+    emit wifiStatusTextChanged();
+    scanAvailableWifiNetworks("/opt/tunnel/wifi_getnetworks.sh",{""});
+}
+
+void engineClass::wifiConnectButton(QString ssid, QString psk)
+{
+    QStringList parameters={"--passphrase",psk,"station","wlan0","connect",ssid};
+    connectWifiNetwork("iwctl", parameters);
+    QTimer::singleShot(10000, this, SLOT( getWifiStatus() ));
+    m_wifiStatusText = "Connecting, wait 10 seconds. ";
+    emit wifiStatusTextChanged();
+}
+
+void engineClass::wifiEraseAllConnection()
+{
+    QProcess process;
+    process.setProgram("/bin/nukewifi.sh");
+    process.setArguments({""});
+    process.start();
+    process.waitForFinished();
+    m_wifiStatusText = "Connections removed. Power off unit!";
+    emit wifiStatusTextChanged();
+    m_wifiNotifyColor = "#FF0000";
+    emit wifiNotifyColorChanged();
+
+}
+
+QStringList engineClass::getWifiNetworks()
+{
+    return m_wifiNetworks;
+}
+
+void engineClass::scanAvailableWifiNetworks(QString command, QStringList parameters)
+{
+    QProcess process;
+    process.setProgram(command);
+    process.setArguments(parameters);
+    process.start();
+    process.waitForFinished();
+    QString result=process.readAllStandardOutput();
+    QString trimmedList = result.trimmed();
+
+    /*  TODO: Improve this after modified /opt/tunnel/wifi_getnetworks.sh
+        The SSID can be any alphanumeric, case-sensitive entry from 2 to 32 characters.
+        The printable characters plus the space (ASCII 0x20) are allowed,
+        but these six characters are not: ?, ", $, [, \, ], and +.
+    */
+    QStringList networks=trimmedList.split(" ");
+    m_wifiNetworks=trimmedList.split(" ");
+    emit wifiNetworksChanged();
+    m_wifiStatusText = "Scan ready, found " + QString::number( networks.length() ) + " networks.";
+    emit wifiStatusTextChanged();
+}
+void engineClass::connectWifiNetwork(QString command, QStringList parameters)
+{
+    qint64 pid;
+    QProcess process;
+    process.setProgram(command);
+    process.setArguments(parameters);
+    process.startDetached(&pid);
+}
+void engineClass::getWifiStatus()
+{
+    QProcess process;
+    process.setProgram("/opt/tunnel/wifi_status.sh");
+    process.setArguments({""});
+    process.start();
+    process.waitForFinished();
+    QString result=process.readAllStandardOutput();
+    m_wifiStatusText = result;
+    emit wifiStatusTextChanged();
+
+    if ( result.contains( "connected",Qt::CaseInsensitive ) ) {
+        m_wifiNotifyColor = "#00FF00";
+        emit wifiNotifyColorChanged();
+    }
+}
+
+void engineClass::registerTouch()
+{
+    m_screenTimeoutCounter = DEVICE_LOCK_TIME;
+}
+
+void engineClass::getKnownWifiNetworks()
+{
+    QProcess process;
+    process.setProgram("/opt/tunnel/wifi_getknownnetworks.sh");
+    process.setArguments({""});
+    process.start();
+    process.waitForFinished();
+    QString result=process.readAllStandardOutput();
+    QString trimmedList = result.trimmed();
+    QStringList networks=trimmedList.split(" ");
+    // m_wifiNetworks=trimmedList.split(" ");
+    // emit wifiNetworksChanged();
+}
+
+QString engineClass::getAboutTextContent()
+{
+    return m_aboutText;
+}
+
+void engineClass::loadAboutText()
+{
+    QString line;
+    QFile file("/root/license.txt");
+    if(!file.open(QIODevice::ReadOnly)) {
+        m_aboutText = "license.txt missing";
+    }
+    QTextStream in(&file);
+    while(!in.atEnd()) {
+         line = in.readLine();
+         m_aboutText = m_aboutText + line + "\n";
+    }
+    file.close();
+    emit aboutTextContentChanged();
+}
+
+bool engineClass::deepSleepEnabled() const
+{
+    return m_deepSleepEnabled;
+}
+
+void engineClass::setDeepSleepEnabled(bool newDeepSleepEnabled)
+{
+    if (m_deepSleepEnabled == newDeepSleepEnabled)
+        return;
+    m_deepSleepEnabled = newDeepSleepEnabled;
+    emit deepSleepEnabledChanged();
+    // Persist change to ini file
+    QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
+    settings.setValue("deepsleep", m_deepSleepEnabled);
+}
+
+void engineClass::changeDeepSleepEnabled(bool newDeepSleepEnabled)
+{
+    setDeepSleepEnabled(newDeepSleepEnabled);
+}
