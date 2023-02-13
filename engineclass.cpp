@@ -128,7 +128,7 @@ void engineClass::runExternalCmdCaptureOutput(QString command, QStringList param
 
 void engineClass::lockDevice(bool state)
 {
-    if ( state == LOCK_DEVICE ) {
+    if ( state == LOCK_DEVICE && g_connectState == false ) {
         m_deviceLocked = true;
         runExternalCmd("/bin/pptk-vibrate", {"200","200","1"});
         runExternalCmd("/bin/pptk-backlight", {"set_percent", "0"});
@@ -584,10 +584,8 @@ void engineClass::envTimerTick()
 //       emit snrValueChanged();
 
     /* Screen timeout counter */
-    if ( m_screenTimeoutCounter > 0 && m_deviceLocked == false ) {
+    if ( m_screenTimeoutCounter > 0 && m_deviceLocked == false && g_connectState == false ) {
         m_screenTimeoutCounter = m_screenTimeoutCounter - 5;
-//        if ( m_screenTimeoutCounter == 30 )
-//            runExternalCmd("/bin/pptk-backlight", {"set_percent", "10"});
     }
     if ( m_screenTimeoutCounter == 0 && m_deviceLocked == false ) {
         lockDevice(LOCK_DEVICE);
