@@ -19,10 +19,7 @@
     TODO:
     ---------------------------------------------------------------------
     [ ]     Audio volume: mixer names setting or detection
-    [ ]     Remote kill command & distress logic
-    [ ]     Nuke logic
     [ ]     Wifi SSID's with spaces do not work
-    [ ]     LTE connectivity
 
     NOTE:   If you turn LTE modem off with DIP switches, adjust /root/utils/cell.sh
             because it might block if modem is non reachable.
@@ -59,10 +56,12 @@
 #define VOL_GPIO_INPUT_PATH     "/dev/input/by-path/platform-1c21800.lradc-event"
 #define BATTERY_CAPACITY_PATH   "/sys/class/power_supply/axp20x-battery/capacity"
 #define BATTERY_CURRENT_PATH    "/sys/class/power_supply/axp20x-battery/current_now"
-#define BATTERY_STATUS_PATH    "/sys/class/power_supply/axp20x-battery/status"
+#define BATTERY_STATUS_PATH     "/sys/class/power_supply/axp20x-battery/status"
+#define PROXIMITY_SENSOR_PATH   "/sys/devices/platform/soc/1c2b000.i2c/i2c-1/1-0048/iio:device1/in_proximity_raw"
+#define PROXIMITY_SENSOR_PATH_2 "/sys/devices/platform/soc/1c2b000.i2c/i2c-1/1-0048/iio:device2/in_proximity_raw"
 #define LOCK_DEVICE             true
 #define UNLOCK_DEVICE           false
-#define DEVICE_LOCK_TIME        60
+#define DEVICE_LOCK_TIME        120
 #define FIFO_TIMEOUT            1
 #define FIFO_REPLY_RECEIVED     0
 
@@ -71,10 +70,13 @@ engineClass::engineClass(QObject *parent)
 {
     QTimer::singleShot(2 * 1000, this, SLOT(loadSettings()));
     QTimer::singleShot(4 * 1000, this, SLOT(initEngine()));
+    /* environment and proximity evaluation timers */
     envTimer = new QTimer();
     connect(envTimer, &QTimer::timeout, this, QOverload<>::of(&engineClass::envTimerTick));
     envTimer->start(5000);
-
+    proximityTimer = new QTimer();
+    connect(proximityTimer, &QTimer::timeout, this, QOverload<>::of(&engineClass::proximityTimerTick));
+    proximityTimer->start(2000);
     /* Power button, TODO: m_pwrButtonFileHandle close */
     QByteArray pwrButtonDevice = QByteArrayLiteral(PWR_GPIO_INPUT_PATH);
     m_pwrButtonFileHandle = open(pwrButtonDevice.constData(), O_RDONLY);
@@ -123,7 +125,7 @@ void engineClass::runExternalCmdCaptureOutput(QString command, QStringList param
     process.start();
     process.waitForFinished();
     QString result=process.readAllStandardOutput();
-    qDebug() << "ext. output " << result;
+    qDebug() << "runExternalCmdCaptureOutput() " << result;
 }
 
 void engineClass::lockDevice(bool state)
@@ -157,6 +159,36 @@ void engineClass::lockDevice(bool state)
     }
 }
 
+bool engineClass::getPowerOffVisible()
+{
+    return mPowerOffDialog;
+}
+
+void engineClass::readPwrGpioButtonTimer()
+{
+    if ( m_deviceLocked == false ) {
+        qDebug() << "readPwrGpioButtonTimer()";
+        if ( mPwrButtonCycle && mPwrButtonReleased == false ) {
+            qDebug() << "Power button held 2 s detected";
+            m_SwipeViewIndex = 0;
+            emit swipeViewIndexChanged();
+            mPowerOffDialog=true;
+            emit powerOffVisibleChanged();
+        }
+    }
+}
+
+void engineClass::closePowerOffDialog()
+{
+    mPowerOffDialog=false;
+    emit powerOffVisibleChanged();
+}
+
+void engineClass::setSwipeIndex(int index)
+{
+    m_SwipeViewIndex = index;
+}
+
 void engineClass::readPwrGpioButton()
 {
     struct input_event in_ev = { 0 };
@@ -169,23 +201,31 @@ void engineClass::readPwrGpioButton()
     case EV_KEY:
     {
         if (KEY_POWER == in_ev.code && in_ev.value == 1 ) {
+            mPwrButtonCycle = true;
+            mPwrButtonReleased = false;
+            QTimer::singleShot(4 * 1000, this, SLOT(readPwrGpioButtonTimer()));
             runExternalCmd("/bin/pptk-led", {"set", "red", "1"});
-            if ( m_deviceLocked == false ) {
-                lockDevice(LOCK_DEVICE);
-            } else
-            {
-                lockDevice(UNLOCK_DEVICE);
-            }
             break;
         }
         if (KEY_POWER == in_ev.code && in_ev.value == 0 ) {
-            runExternalCmd("/bin/pptk-led", {"set", "red", "0"});
+            mPwrButtonReleased = true;
+
+                runExternalCmd("/bin/pptk-led", {"set", "red", "0"});
+                if ( m_deviceLocked == false && !mPowerOffDialog ) {
+                    lockDevice(LOCK_DEVICE);
+                } else
+                {
+                    lockDevice(UNLOCK_DEVICE);
+                }
             break;
         }
     }
     }
 }
 
+/* Volume up/down:
+    * On settings page adjusts backlight
+    * Other pages, adjusts volume */
 void engineClass::readVolGpioButton()
 {
     struct input_event in_ev = { 0 };
@@ -198,36 +238,62 @@ void engineClass::readVolGpioButton()
     case EV_KEY:
     {
         if (KEY_VOLUMEDOWN == in_ev.code && in_ev.value == 1 ) {
-            if ( m_SpeakerVolumeRuntimeValue > 0 && m_SpeakerVolumeRuntimeValue <= 100 )
-            {
-                m_SpeakerVolumeRuntimeValue = m_SpeakerVolumeRuntimeValue - 5;
+            if ( m_SwipeViewIndex == 2 ) {
+                if ( mBacklightLevel >= 20 && mBacklightLevel <= 90 ) {
+                    registerTouch();
+                    runExternalCmd("/bin/pptk-backlight", {"set_percent", QString::number(mBacklightLevel)});
+                    mBacklightLevel = mBacklightLevel - 10;
+                }
+            } else {
+                if ( m_SpeakerVolumeRuntimeValue > 0 && m_SpeakerVolumeRuntimeValue <= 100 )
+                {
+                    m_SpeakerVolumeRuntimeValue = m_SpeakerVolumeRuntimeValue - 5;
+                }
+                m_statusMessage = "Volume: " + QString::number(m_SpeakerVolumeRuntimeValue) + " %" ;
+                emit statusMessageChanged();
+                uPref.volumeValue = QString::number(m_SpeakerVolumeRuntimeValue);
+                saveUserPreferences();
+                break;
             }
-            m_statusMessage = "Volume: " + QString::number(m_SpeakerVolumeRuntimeValue) + " %" ;
-            emit statusMessageChanged();
-            uPref.volumeValue = QString::number(m_SpeakerVolumeRuntimeValue);
-            saveUserPreferences();
-            break;
         }
+
         if (KEY_VOLUMEUP == in_ev.code && in_ev.value == 1 ) {
-            if ( m_SpeakerVolumeRuntimeValue >= 0 && m_SpeakerVolumeRuntimeValue < 100 )
-            {
-                m_SpeakerVolumeRuntimeValue = m_SpeakerVolumeRuntimeValue + 5;
+            if ( m_SwipeViewIndex == 2 ) {
+                if ( mBacklightLevel >= 10 && mBacklightLevel <= 80 ) {
+                    registerTouch();
+                    mBacklightLevel = mBacklightLevel + 10;
+                    runExternalCmd("/bin/pptk-backlight", {"set_percent", QString::number(mBacklightLevel)});
+                }
+            } else {
+                if ( m_SpeakerVolumeRuntimeValue >= 0 && m_SpeakerVolumeRuntimeValue < 100 )
+                {
+                    m_SpeakerVolumeRuntimeValue = m_SpeakerVolumeRuntimeValue + 5;
+                }
+                m_statusMessage = "Volume: " + QString::number(m_SpeakerVolumeRuntimeValue) + " %" ;
+                emit statusMessageChanged();
+                uPref.volumeValue = QString::number(m_SpeakerVolumeRuntimeValue);
+                saveUserPreferences();
+                break;
             }
-            m_statusMessage = "Volume: " + QString::number(m_SpeakerVolumeRuntimeValue) + " %" ;
-            emit statusMessageChanged();
-            uPref.volumeValue = QString::number(m_SpeakerVolumeRuntimeValue);
-            saveUserPreferences();
-            break;
+
         }
     }
     }
 }
 
-/* TODO: UI elements (or automation) needed still for mixer naming
- *
+/*
  * Set system volume with external process.
+ *
+ * FIXME: UI elements (or automation) needed still for mixer naming
+ *
  * Playback volume:     amixer sset [DEVICENAME] Playback 100%
  * Microphone volume:   amixer sset [DEVICENAME] Capture 5%+
+ *
+ * Internal earpiece: "'Earpiece'"
+ * Internal mic: "'Mic1'" or "'Mic2'"
+ *
+ * FIXME: This now hardcoded for Internal earpiece testing
+ *
  */
 void engineClass::setSystemVolume(int volume)
 {
@@ -235,7 +301,7 @@ void engineClass::setSystemVolume(int volume)
     qint64 pid;
     QProcess process;
     process.setProgram("/usr/bin/amixer");
-    process.setArguments({"sset","'PCM'", "Playback",volumePercentString}); // TODO
+    process.setArguments({"sset","'Earpiece'", "Playback",volumePercentString}); // TODO
     process.setStandardOutputFile(QProcess::nullDevice());
     process.setStandardErrorFile(QProcess::nullDevice());
     process.startDetached(&pid);
@@ -263,6 +329,8 @@ void engineClass::loadUserPreferences()
     uPref.m_pinCode = settings.value("pincode","4321").toString();
     m_deepSleepEnabled = settings.value("deepsleep",false).toBool();
     emit deepSleepEnabledChanged();
+    m_lteEnabled = settings.value("lte",false).toBool();
+    emit lteEnabledChanged();
 }
 void engineClass::saveUserPreferences()
 {
@@ -423,24 +491,92 @@ void engineClass::reloadKeyUsage()
     emit peer_9_keyPercentageChanged();
 }
 
+// TODO: Check i2c path change and implement better solution
+void engineClass::proximityTimerTick()
+{
+    bool proxValueAvailable = false;
+    QString proxLine;
+    QString proxFileName=PROXIMITY_SENSOR_PATH;
+    QFile proxFile(proxFileName);
+    if(!proxFile.exists()){
+    } else {
+        if (proxFile.open(QIODevice::ReadOnly | QIODevice::Text)){
+            QTextStream stream(&proxFile);
+            while (!stream.atEnd()){
+                proxLine = stream.readLine();
+                break;
+            }
+        }
+        proxFile.close();
+        proxValueAvailable = true;
+    }
+
+    if ( !proxValueAvailable ) {
+        proxFileName = PROXIMITY_SENSOR_PATH_2;
+        QFile proxFileSensodary(proxFileName);
+        if(!proxFileSensodary.exists()){
+            return;
+        } else {
+            if (proxFileSensodary.open(QIODevice::ReadOnly | QIODevice::Text)){
+                QTextStream stream(&proxFileSensodary);
+                while (!stream.atEnd()){
+                    proxLine = stream.readLine();
+                    break;
+                }
+            }
+            proxFileSensodary.close();
+            proxValueAvailable = true;
+        }
+    }
+    // Use Wifi symbol to debug proximity sensor
+    if ( proxValueAvailable ) {
+        if ( proxLine.toInt() > 30 ) {
+            m_wifiNotifyText = "WIFI*";
+            emit wifiNotifyTextChanged();
+            // Swipe to front page & block touch
+            m_SwipeViewIndex = 0;
+            emit swipeViewIndexChanged();
+            m_touchBlock_active=true;
+            emit touchBlock_activeChanged();
+
+        } else {
+            // Unblock touch
+            m_wifiNotifyText = "WIFI";
+            emit wifiNotifyTextChanged();
+            m_touchBlock_active=false;
+            emit touchBlock_activeChanged();
+        }
+    }
+}
+
 void engineClass::envTimerTick()
 {
-    /* /sys/class/power_supply/axp20x-battery/capacity
-     *
-     * BATTERY_CURRENT_PATH
-     * BATTERY_STATUS_PATH      Charging    Discharging
+/*
+Cell information
 
-        Read values from comma separated string (produced by cell.sh)
-        *  "4.23,24412,6301,397322,51,E-UTRA band 20: 800 DD,-76 dBm,-14 dB,-101 dBm,3.8 dB"
-        See: pinerouter-ui for details on cell thing
+    PLMN: [MCC] + [MNC] (Mobile operator identifier)
+    Tracking Area Code: '211'
+    Global Cell ID: '2205450'
+    Serving Cell ID: '51'
+    EUTRA Absolute RF Channel Number
 
-    */
+Signal information
+
+    RSSI – received Signal Strength Indicator
+    RSRQ – reference Signal Received Quality
+    RSRP - reference Signal Received Power
+    SNR  - signal-to-noise ratio
+
+[1] https://www.cablefree.net/wirelesstechnology/4glte/rsrp-rsrq-measurement-lte/
+
+*/
 
     if ( m_vaultModeActive ) {
         return;
     }
 
-    if ( 0 ) {
+    if ( 1 ) {
+
         /* Read voltage from ENV file as volts */
         QString filename="/tmp/env";
         QFile file(filename);
@@ -461,7 +597,7 @@ void engineClass::envTimerTick()
         mVoltage = elements[0] + " V";
         emit voltageValueChanged();
         float voltageCompareValue = elements[0].toFloat();
-        if (voltageCompareValue < 3.7 && voltageCompareValue > 3.6 ) {
+        if ( voltageCompareValue < 3.7 && voltageCompareValue > 3.6 ) {
            mvoltageNotifyColor = "#FFFF00";
            emit voltageNotifyColorChanged();
         }
@@ -473,12 +609,29 @@ void engineClass::envTimerTick()
            mvoltageNotifyColor = "#FF5555";
            emit voltageNotifyColorChanged();
         }
+        /* Parse cellular environment if we have it */
+        mPlmn = elements[1];
+        mTa = elements[2];
+        mGc = elements[3];
+        mSc = elements[4];
+        mAc = elements[5];
+        mRssi = elements[6];
+        mRsrq = elements[7];
+        mRsrp = elements[8];
+        mSnr = elements[9];
+        emit plmnChanged();
+        emit taChanged();
+        emit gcChanged();
+        emit scChanged();
+        emit acChanged();
+        emit rssiChanged();
+        emit rsrqChanged();
+        emit rsrpChanged();
+        emit snrChanged();
     }
     /* Read capacity as percentage from /sys/class/power_supply/axp20x-battery/capacity */
     if ( 1 ) {
-
         QString chargeStatusText="";
-        // Status
         QFile batStatusFile(BATTERY_STATUS_PATH);
         if(!batStatusFile.exists()){
         }
@@ -494,7 +647,6 @@ void engineClass::envTimerTick()
         if ( batStatus.contains( "Discharging",Qt::CaseInsensitive ) ) {
              chargeStatusText = "↘";
         }
-
         // Capacity
         QFile file(BATTERY_CAPACITY_PATH);
         if(!file.exists()){
@@ -527,7 +679,6 @@ void engineClass::envTimerTick()
         }
     }
 
-    /* dpinger -f -s 5000 -r 5000 10.0.0.1 > /tmp/network */
     QString networkStatusFile="/tmp/network";
     QFile networkFile(networkStatusFile);
     if(!networkFile.exists()){
@@ -560,28 +711,8 @@ void engineClass::envTimerTick()
     if ( latencyIntms > 1000 ) {
         mnetworkStatusLabelColor="#FF5555";
     }
-
     emit networkStatusLabelChanged();
     emit networkStatusLabelColorChanged();
-
-//       mPlmn = elements[1];
-//       mTa = elements[2];
-//       mGc = elements[3];
-//       mSc = elements[4];
-//       mAc = elements[5];
-//       mRssi = elements[6];
-//       mRsrq = elements[7];
-//       mRsrp = elements[8];
-//       mSnr = elements[9];
-//       emit plmnValueChanged();
-//       emit taValueChanged();
-//       emit gcValueChanged();
-//       emit scValueChanged();
-//       emit acValueChanged();
-//       emit rssiValueChanged();
-//       emit rsrqValueChanged();
-//       emit rsrpValueChanged();
-//       emit snrValueChanged();
 
     /* Screen timeout counter */
     if ( m_screenTimeoutCounter > 0 && m_deviceLocked == false && g_connectState == false ) {
@@ -590,7 +721,6 @@ void engineClass::envTimerTick()
     if ( m_screenTimeoutCounter == 0 && m_deviceLocked == false ) {
         lockDevice(LOCK_DEVICE);
     }
-
     peerLatency();
 }
 
@@ -851,6 +981,7 @@ int engineClass::msgFifoChanged()
        }
        m_callDialogVisible = true;
        emit callDialogVisibleChanged();
+       runExternalCmd("/bin/pptk-vibrate", {"400","90","2"});
        token[1]="";
        return 0;
     }
@@ -877,10 +1008,35 @@ int engineClass::msgFifoChanged()
 
        // Remote (who connected us) press 'terminate', we should do the same
        if ( token[1] == "initiator_disconnect") {
-           qDebug() << "initiator_disconnect received to msgfifo";
-           // TODO: 'press' terminate
-           // if ( g_connectState )
-           //     on_denyButton_clicked(); ** IMPLEMENT waitForFifoReply() **
+           // Hangup to FIFO
+           QString hangupCommandString = g_connectedNodeIp + ",hangup";
+           fifoWrite( hangupCommandString );
+           // Wait FIFO with timeout
+           if ( waitForFifoReply() == FIFO_TIMEOUT ) {
+               updateCallStatusIndicator("Timeout. Aborting.", "green", "transparent",LOG_ONLY );
+               return 0;
+           }
+           // Turn off local audio
+           hangupCommandString = "127.0.0.1,disconnect_audio";
+           fifoWrite( hangupCommandString );
+           updateCallStatusIndicator("Incoming Terminated", "lightgreen", "transparent",INDICATE_ONLY);
+           eraseConnectionLabels();
+           m_textMsgDisplay = "";
+           emit textMsgDisplayChanged();
+           g_connectState = false;
+           m_callSignInsigniaImage = "";
+           m_insigniaLabelText = "";
+           m_insigniaLabelStateText = "";
+           m_goSecureButton_active = false;
+           emit callSignInsigniaImageChanged();
+           emit insigniaLabelTextChanged();
+           emit insigniaLabelStateTextChanged();
+           emit goSecureButton_activeChanged();
+           m_callDialogVisible = false;
+           emit callDialogVisibleChanged();
+           // Return to main page
+           m_SwipeViewIndex = 0;
+           emit swipeViewIndexChanged();
            token[1]="";
            return 0;
        }
@@ -888,7 +1044,9 @@ int engineClass::msgFifoChanged()
        // client_connected,[client_id];[client_ip];[client_name]
        if ( token[1].contains( "client_connected",Qt::CaseInsensitive ) ) {
            qDebug() << "** Remote client connected **";
-
+           if ( m_deviceLocked ) {
+               lockDevice(UNLOCK_DEVICE);
+           }
            QStringList remoteParameters = token[1].split(';');
            g_connectedNodeId = remoteParameters[1];
            g_connectedNodeIp = remoteParameters[2];
@@ -925,7 +1083,7 @@ int engineClass::msgFifoChanged()
        /* ping - pong */
        if ( token[1] == "Ping") {
            if ( g_connectState ) {
-               QString fifo_command = g_remoteOtpPeerIp + ",message,Pong [ " + mVoltage + " ] [ " + mnetworkStatusLabelValue +" ]";
+               QString fifo_command = g_remoteOtpPeerIp + ",message,CommCheck [ " + mVoltage + " ] [ " + mnetworkStatusLabelValue +" ]";
                fifoWrite(fifo_command);
                return 0;
            }
@@ -1126,9 +1284,7 @@ int engineClass::fifoChanged()
         /* Main logic for telemetry fifo handling */
         QStringList token = line.split(',');
         g_fifoReply = token[1];
-
-        qDebug() << "Telemetry FIFO received:  IP:" << token[0] << " Status: " << token[1];
-
+        // qDebug() << "Telemetry FIFO received:  IP:" << token[0] << " Status: " << token[1];
           if( token[1].compare("available") == 0 )
           {
               for (int x=0; x<NODECOUNT; x++) {
@@ -2398,7 +2554,6 @@ void engineClass::setDeepSleepEnabled(bool newDeepSleepEnabled)
         return;
     m_deepSleepEnabled = newDeepSleepEnabled;
     emit deepSleepEnabledChanged();
-    // Persist change to ini file
     QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
     settings.setValue("deepsleep", m_deepSleepEnabled);
 }
@@ -2407,3 +2562,65 @@ void engineClass::changeDeepSleepEnabled(bool newDeepSleepEnabled)
 {
     setDeepSleepEnabled(newDeepSleepEnabled);
 }
+
+/* LTE - mobile data
+    NOTE: ini-file persist only checkbox state, actual connectivity
+          is controlled by systemd service (lte.service) on boot.
+*/
+bool engineClass::lteEnabled() const
+{
+    return m_lteEnabled;
+}
+
+void engineClass::setLteEnabled(bool newLteEnabled)
+{
+    if (m_lteEnabled == newLteEnabled)
+        return;
+    m_lteEnabled = newLteEnabled;
+    emit lteEnabledChanged();
+    QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
+    settings.setValue("lte", m_lteEnabled);
+}
+
+void engineClass::changeLteEnabled(bool newLteEnabled)
+{
+    if ( newLteEnabled )
+        runExternalCmd("/bin/systemctl", {"enable", "lte"});
+    else
+        runExternalCmd("/bin/systemctl", {"disable", "lte"});
+
+    setLteEnabled(newLteEnabled);
+}
+
+QString engineClass::getPlmn() {
+    return mPlmn;
+}
+QString engineClass::getTa() {
+    return mTa;
+}
+QString engineClass::getGc() {
+    return mGc;
+}
+
+QString engineClass::getSc() {
+    return mSc;
+}
+QString engineClass::getAc() {
+    return mAc;
+}
+QString engineClass::getRssi() {
+    return mRssi;
+}
+QString engineClass::getRsrq() {
+    return mRsrq;
+}
+QString engineClass::getRsrp() {
+    return mRsrp;
+}
+QString engineClass::getSnr() {
+    return mSnr;
+}
+
+
+
+

@@ -147,6 +147,20 @@ class engineClass : public QObject
     // About text & deep sleep
     Q_PROPERTY(QString aboutTextContent READ getAboutTextContent() NOTIFY aboutTextContentChanged);
     Q_PROPERTY(bool deepSleepEnabled READ deepSleepEnabled WRITE setDeepSleepEnabled NOTIFY deepSleepEnabledChanged);
+    Q_PROPERTY(bool lteEnabled READ lteEnabled WRITE setLteEnabled NOTIFY lteEnabledChanged)
+
+    Q_PROPERTY(bool powerOffDialogVisible READ getPowerOffVisible() NOTIFY powerOffVisibleChanged);
+
+    // Cellular info
+    Q_PROPERTY(QString plmn READ getPlmn NOTIFY plmnChanged)
+    Q_PROPERTY(QString ta READ getTa NOTIFY taChanged)
+    Q_PROPERTY(QString gc READ getGc NOTIFY gcChanged)
+    Q_PROPERTY(QString sc READ getSc NOTIFY scChanged)
+    Q_PROPERTY(QString ac READ getAc NOTIFY acChanged)
+    Q_PROPERTY(QString rssi READ getRssi NOTIFY rssiChanged)
+    Q_PROPERTY(QString rsrq READ getRsrq NOTIFY rsrqChanged)
+    Q_PROPERTY(QString rsrp READ getRsrp NOTIFY rsrpChanged)
+    Q_PROPERTY(QString snr READ getSnr NOTIFY snrChanged)
 
 
 public:
@@ -276,11 +290,39 @@ public:
     Q_INVOKABLE QString getAboutTextContent();
     Q_INVOKABLE void getWifiStatus();
     Q_INVOKABLE void registerTouch();
-
     bool deepSleepEnabled() const;
     void setDeepSleepEnabled(bool newDeepSleepEnabled);
     Q_INVOKABLE void changeDeepSleepEnabled(bool newDeepSleepEnabled);
 
+    bool lteEnabled() const;
+    void setLteEnabled(bool newLteEnabled);
+    Q_INVOKABLE void changeLteEnabled(bool newLteEnabled);
+
+
+    Q_INVOKABLE QString getPlmn();
+    Q_INVOKABLE QString getTa();
+    Q_INVOKABLE QString getGc();
+    Q_INVOKABLE QString getSc();
+    Q_INVOKABLE QString getAc();
+    Q_INVOKABLE QString getRssi();
+    Q_INVOKABLE QString getRsrq();
+    Q_INVOKABLE QString getRsrp();
+    Q_INVOKABLE QString getSnr();
+    Q_INVOKABLE bool getPowerOffVisible();
+    Q_INVOKABLE void closePowerOffDialog();
+    Q_INVOKABLE void setSwipeIndex(int index);
+
+/*
+    Q_PROPERTY(QString plmn READ getPlmn NOTIFY plmnChanged)
+    Q_PROPERTY(QString ta READ  NOTIFY taChanged)
+    Q_PROPERTY(QString gc READ  NOTIFY gcChanged)
+    Q_PROPERTY(QString sc READ  NOTIFY scChanged)
+    Q_PROPERTY(QString ac READ  NOTIFY acChanged)
+    Q_PROPERTY(QString rssi READ  NOTIFY rssiChanged)
+    Q_PROPERTY(QString rsrq READ  NOTIFY rsrqChanged)
+    Q_PROPERTY(QString rsrp READ  NOTIFY rsrpChanged)
+    Q_PROPERTY(QString snr READ  NOTIFY snrChanged)
+*/
 
 private:
     QString m_peer_0_CallSign="";
@@ -377,6 +419,7 @@ private:
     double txKeyRemaining;
     QString txKeyRemainingString;
     QString rxKeyRemainingString;
+
     /* FIFO */
     QFile fifoIn;
     QFile msgFifoIn;
@@ -425,8 +468,24 @@ private:
     UserPreferences uPref;
     void loadUserPreferences();
     void saveUserPreferences();
-
     bool m_deepSleepEnabled=false;
+    bool m_lteEnabled=false;
+
+    QString mPlmn;
+    QString mTa;
+    QString mGc;
+    QString mSc;
+    QString mAc;
+    QString mRssi;
+    QString mRsrq;
+    QString mRsrp;
+    QString mSnr;
+
+    bool mPwrButtonReleased=false;
+    bool mPwrButtonCycle=false;
+    bool mPowerOffDialog=false;
+    QTimer *proximityTimer;
+    int mBacklightLevel=50;
 
 public slots:
     void initEngine();
@@ -447,6 +506,7 @@ private slots:
     void activateInsignia(int node_id, QString stateText);
     void envTimerTick();
     void readPwrGpioButton();
+    void readPwrGpioButtonTimer();
     void readVolGpioButton();
     void runExternalCmd(QString command, QStringList parameters );
     void runExternalCmdCaptureOutput(QString command, QStringList parameters);
@@ -465,10 +525,9 @@ private slots:
     void setMicrophoneVolume(int volume);
     void scanAvailableWifiNetworks(QString command, QStringList parameters);
     void connectWifiNetwork(QString command, QStringList parameters);
-
     void getKnownWifiNetworks();
     void loadAboutText();
-
+    void proximityTimerTick();
 
 signals:
     void peer_0_NameChanged(); // emit this on m_peerCallSign change
@@ -565,6 +624,19 @@ signals:
     void wifiNotifyColorChanged();
     void aboutTextContentChanged();
     void deepSleepEnabledChanged();
+    void lteEnabledChanged();
+    void plmnChanged();
+    void taChanged();
+    void gcChanged();
+    void scChanged();
+    void acChanged();
+    void rssiChanged();
+    void rsrqChanged();
+    void rsrpChanged();
+    void snrChanged();
+    void powerOffVisibleChanged();
+
+
 };
 
 #endif // ENGINECLASS_H

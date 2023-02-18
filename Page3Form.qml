@@ -341,7 +341,7 @@ Page {
         anchors.topMargin: 15
         padding: 1
         font.pointSize: 8
-        text: qsTr("Power save options")
+        text: qsTr("Options")
         color: "#00ff00"
     }
 
@@ -349,7 +349,7 @@ Page {
     CheckBox {
         id: deepSleepCheckbox
         anchors.top: powerSaveTitle.bottom
-        anchors.topMargin: -2
+        anchors.topMargin: -5
         anchors.left: parent.left
         anchors.leftMargin: 10
         text: qsTr("deep sleep on screen lock")
@@ -359,7 +359,6 @@ Page {
                 eClass.changeDeepSleepEnabled(deepSleepCheckbox.checkState)
             }
         }
-
         indicator: Rectangle {
             implicitWidth: 10
             implicitHeight: 10
@@ -379,7 +378,6 @@ Page {
                 visible: deepSleepCheckbox.checked
             }
         }
-
         contentItem: Text {
             text: deepSleepCheckbox.text
             font.pointSize: 8
@@ -390,11 +388,53 @@ Page {
         }
     }
 
+    CheckBox {
+        id: lteCheckbox
+        anchors.top: deepSleepCheckbox.bottom
+        anchors.topMargin: -5
+        anchors.left: parent.left
+        anchors.leftMargin: 10
+        text: qsTr("Cellular data (requires boot)")
+        checked: eClass.lteEnabled
+        onCheckedChanged: {
+            if (checked !== eClass.lteEnabled ) {
+                eClass.changeLteEnabled(lteCheckbox.checkState)
+            }
+        }
+        indicator: Rectangle {
+            implicitWidth: 10
+            implicitHeight: 10
+            x: lteCheckbox.leftPadding
+            y: parent.height / 2 - height / 2
+            radius: 2
+            color: "transparent"
+            border.color: "#00FF00"
+
+            Rectangle {
+                width: 6
+                height: 6
+                x: 2
+                y: 2
+                radius: 2
+                color: "#00FF00"
+                visible: lteCheckbox.checked
+            }
+        }
+        contentItem: Text {
+            text: lteCheckbox.text
+            font.pointSize: 8
+            opacity: enabled ? 1.0 : 0.3
+            color: "#00FF00"
+            verticalAlignment: Text.AlignVCenter
+            leftPadding: lteCheckbox.indicator.width + lteCheckbox.spacing
+        }
+    }
+
     // About button
     Button {
         id: aboutButton
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: deepSleepCheckbox.bottom
+        anchors.top: lteCheckbox.bottom
         anchors.topMargin: 50
         width: 20
         height: 20
@@ -433,7 +473,7 @@ Page {
         anchors.horizontalCenter: parent.horizontalCenter
         padding: 1
         font.pointSize: 6
-        text: qsTr("v0.2a [DEV]")
+        text: qsTr("v0.3 [DEV]")
         color: "#00ff00"
         horizontalAlignment: Text.AlignHCenter
     }

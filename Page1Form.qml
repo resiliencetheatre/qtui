@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.5
 import QtQuick.Controls.Styles 1.4
+import QtQuick.Layouts 1.3 // cell
 
 Page {
     id: page
@@ -101,7 +102,7 @@ Page {
             padding: 0
             color: "#00ff00"
         }
-
+        // TODO: Remove this
         Image {
             id: powerButtonImage
             source: "powerbutton.png"
@@ -109,6 +110,7 @@ Page {
             height: 15
             anchors.top: parent.top
             anchors.right: parent.right
+            visible: false
             MouseArea {
                 id: area
                 hoverEnabled: true
@@ -121,6 +123,87 @@ Page {
                 }
             }
         }
+    }
+    //
+    Frame {
+        id: cellStatus
+        visible: eClass.lteEnabled
+        anchors.topMargin: -5
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 40
+        background: Rectangle {
+            color: "transparent"
+            border.color: "#ffffff"
+            border.width: 0
+            radius: 2
+        }
+        RowLayout {
+            id: statusRowOne
+            Label {
+                id: plmnStatus
+                text: eClass.plmn
+                font.pointSize: 6
+                color: "#00cf00"
+            }
+            Label {
+                id: taStatus
+                text: eClass.ta
+                font.pointSize: 6
+                color: "#00cf00"
+            }
+            Label {
+                id: gcStatus
+                text: eClass.gc
+                font.pointSize: 6
+                color: "#00cf00"
+            }
+            Label {
+                id: scStatus
+                text: eClass.sc
+                font.pointSize: 6
+                color: "#00cf00"
+            }
+            Label {
+                id: acStatus
+                text: eClass.ac
+                font.pointSize: 6
+                color: "#00cf00"
+            }
+        }
+        RowLayout {
+            id: statusRowTwo
+            anchors.top: statusRowOne.bottom
+            anchors.topMargin: 5
+            Label {
+                id: rssiStatus
+                text: eClass.rssi
+                font.pointSize: 6
+                color: "#00cf00"
+            }
+            Label {
+                id: rsrqStatus
+                text: eClass.rsrq
+                font.pointSize: 6
+                color: "#00cf00"
+            }
+            Label {
+                id: rsrpStatus
+                text: eClass.rsrp
+                font.pointSize: 6
+                color: "#00cf00"
+            }
+            Label {
+                id: snrStatus
+                text: eClass.snr
+                font.pointSize: 6
+                color: "#00cf00"
+            }
+
+        }
+
+
     }
 
     /* Contacts: 10 peer */
@@ -705,7 +788,46 @@ Page {
             onDownChanged: {
                 keyStatusFrame.visible = !keyStatusFrame.visible
                 eClass.registerTouch()
+                plmnStatus.text = "[PLMN]"
+                plmnStatus.color = "#00FF00"
+                taStatus.text = "[TAC]"
+                taStatus.color = "#00FF00"
+                gcStatus.text = "[GLOBAL CELL]"
+                gcStatus.color = "#00FF00"
+                scStatus.text = "[SERV CELL]"
+                scStatus.color = "#00FF00"
+                acStatus.text = "[RF CH]"
+                acStatus.color = "#00FF00"
+                rssiStatus.text = "[RSSI]"
+                rssiStatus.color = "#00FF00"
+                rsrqStatus.text = "[RSRQ]"
+                rsrqStatus.color = "#00FF00"
+                rsrpStatus.text = "[RSRP]"
+                rsrpStatus.color = "#00FF00"
+                snrStatus.text = "[SNR]"
+                snrStatus.color = "#00FF00"
             }
+            onReleased: {
+                plmnStatus.text = eClass.plmn
+                plmnStatus.color = "#00cf00"
+                taStatus.text = eClass.ta
+                taStatus.color = "#00cf00"
+                gcStatus.text = eClass.gc
+                gcStatus.color = "#00cf00"
+                scStatus.text = eClass.sc
+                scStatus.color = "#00cf00"
+                acStatus.text = eClass.ac
+                acStatus.color = "#00cf00"
+                rssiStatus.text = eClass.rssi
+                rssiStatus.color = "#00cf00"
+                rsrqStatus.text = eClass.rsrq
+                rsrqStatus.color = "#00cf00"
+                rsrpStatus.text = eClass.rsrp
+                rsrpStatus.color = "#00cf00"
+                snrStatus.text = eClass.snr
+                snrStatus.color = "#00cf00"
+            }
+
             onClicked: {
             }
             contentItem: Text {
@@ -897,6 +1019,91 @@ Page {
                 color: "#00FF00"
             }
         }
+    }
+
+    // --- Power Off dialog ---
+    Frame {
+        id: powerOffDialog
+        visible: eClass.powerOffDialogVisible
+        x: 5
+        y: 265
+        width: 230
+        height: 200
+        background: Rectangle {
+            anchors.fill: parent
+            border.width: 2
+            border.color: "#00aa00"
+            radius: 0
+            color: "#003300"
+            opacity: 0.9
+        }
+        Button {
+            id: powerOffButtonOnDialog
+            x: 0
+            y: 85
+            width: (parent.width / 2) - 5
+            height: 30
+            text: qsTr("Shutdown")
+            font.pointSize: 10
+            checkable: false
+            onClicked: {
+                eClass.powerOff()
+            }
+            contentItem: Text {
+                text: parent.text
+                font: parent.font
+                opacity: enabled ? 1.0 : 0.3
+                color: "#FFFFFF"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
+            background: Rectangle {
+                color: parent.down ? "#DD0000" : "#A00"
+                opacity: enabled ? 1 : 0.3
+                border.color: "#FF0000"
+                border.width: 1
+                radius: 2
+            }
+        }
+        Button {
+            id: cancelPowerOff
+            x: (parent.width / 2) + 5
+            y: 85
+            width: (parent.width / 2) - 5
+            height: 30
+            text: qsTr("Cancel")
+            font.pointSize: 10
+            checkable: false
+            onClicked: {
+                eClass.closePowerOffDialog()
+                eClass.registerTouch()
+            }
+            contentItem: Text {
+                text: parent.text
+                font: parent.font
+                opacity: enabled ? 1.0 : 0.3
+                color: "#FFFFFF"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
+            background: Rectangle {
+                color: parent.down ? "#00DD00" : "#0A0"
+                opacity: enabled ? 1 : 0.3
+                border.color: "#00DD00"
+                border.width: 1
+                radius: 2
+            }
+        }
+        Label {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 10
+            text: qsTr("Power Off ?")
+            color: "#FFFFFF"
+            font.pointSize: 14
+        }
+
     }
 
     // --- Incoming call ---

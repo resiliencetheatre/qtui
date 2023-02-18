@@ -209,10 +209,12 @@ ApplicationWindow {
         }
         onCurrentIndexChanged: {
             eClass.registerTouch()
+            eClass.setSwipeIndex(swipeView.currentIndex)
         }
         Component.onCompleted: {
 
         }
+
     }
 
     // Camo screen
