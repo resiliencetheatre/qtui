@@ -33,7 +33,6 @@
 #define MESSAGE_RECEIVE_FIFO    "/tmp/message_fifo_out"
 #define DEVICE_LOCK_TIME        60
 
-
 class engineClass : public QObject
 {
     Q_OBJECT
@@ -297,8 +296,6 @@ public:
     bool lteEnabled() const;
     void setLteEnabled(bool newLteEnabled);
     Q_INVOKABLE void changeLteEnabled(bool newLteEnabled);
-
-
     Q_INVOKABLE QString getPlmn();
     Q_INVOKABLE QString getTa();
     Q_INVOKABLE QString getGc();
@@ -311,6 +308,7 @@ public:
     Q_INVOKABLE bool getPowerOffVisible();
     Q_INVOKABLE void closePowerOffDialog();
     Q_INVOKABLE void setSwipeIndex(int index);
+    Q_INVOKABLE QString appVersion();
 
 /*
     Q_PROPERTY(QString plmn READ getPlmn NOTIFY plmnChanged)

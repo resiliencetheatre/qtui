@@ -111,6 +111,13 @@ engineClass::engineClass(QObject *parent)
 
     /* Load about text content */
     loadAboutText();
+
+
+}
+
+QString engineClass::appVersion()
+{
+    return APP_VERSION;
 }
 
 void engineClass::runExternalCmd(QString command, QStringList parameters){

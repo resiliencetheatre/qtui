@@ -473,7 +473,7 @@ Page {
         anchors.horizontalCenter: parent.horizontalCenter
         padding: 1
         font.pointSize: 6
-        text: qsTr("v0.3 [DEV]")
+        text: eClass.appVersion() // qsTr("v0.3 [DEV]")
         color: "#00ff00"
         horizontalAlignment: Text.AlignHCenter
     }
