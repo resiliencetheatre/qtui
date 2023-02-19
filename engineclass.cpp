@@ -24,7 +24,10 @@
     NOTE:   If you turn LTE modem off with DIP switches, adjust /root/utils/cell.sh
             because it might block if modem is non reachable.
 
+            QT_ASSUME_STDERR_HAS_CONSOLE=1
+
             This code is highly experimental.
+
 */
 
 #include "engineclass.h"
@@ -1837,19 +1840,19 @@ bool engineClass::getButton_5_active()
 }
 bool engineClass::getButton_6_active()
 {
-    return m_button_5_active;
+    return m_button_6_active;
 }
 bool engineClass::getButton_7_active()
 {
-    return m_button_5_active;
+    return m_button_7_active;
 }
 bool engineClass::getButton_8_active()
 {
-    return m_button_5_active;
+    return m_button_8_active;
 }
 bool engineClass::getButton_9_active()
 {
-    return m_button_5_active;
+    return m_button_9_active;
 }
 
 QString engineClass::getPeer_0_keyPercentage()
