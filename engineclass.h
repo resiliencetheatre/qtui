@@ -512,6 +512,8 @@ private:
     QString mMainColor;
     QString mHighColor;
     QString mDimColor;
+    QString mMessageColorLocal;
+    QString mMessageColorRemote;
 
 
 

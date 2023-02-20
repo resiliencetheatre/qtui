@@ -86,6 +86,8 @@ engineClass::engineClass(QObject *parent)
     emit highColorChanged();
     mDimColor = "#21cc00";
     emit dimColorChanged();
+    mMessageColorLocal = "#FFFFFF";
+    mMessageColorRemote = "#00FF00";
 
     QTimer::singleShot(2 * 1000, this, SLOT(loadSettings()));
     QTimer::singleShot(4 * 1000, this, SLOT(initEngine()));
@@ -314,7 +316,6 @@ void engineClass::readVolGpioButton()
                 saveUserPreferences();
                 break;
             }
-
         }
     }
     }
@@ -374,7 +375,7 @@ void engineClass::loadUserPreferences()
     emit nightModeEnabledChanged();
 
     if ( m_nightModeEnabled ) {
-                                    //  625 nm      Green           640 m
+                                    //  625 nm      Green           640 nm
         mMainColor = "#ff2100";     //  #ff6300     #00FF00         ff2100
         emit mainColorChanged();
         mHighColor = "#ff8080";     //  #ffa300     lightgreen      ff6100
@@ -383,9 +384,12 @@ void engineClass::loadUserPreferences()
         emit dimColorChanged();
         m_wifiNotifyColor = mMainColor;
         emit wifiNotifyColorChanged();
+        mMessageColorLocal = mDimColor;
+        mMessageColorRemote = mMainColor;
+
     }
     else {
-                                    //  625 nm      Green           640 m
+                                    //  625 nm      Green           640 nm
         mMainColor = "#00FF00";     //  #ff6300     #00FF00         ff2100
         emit mainColorChanged();
         mHighColor = "lightgreen";  //  #ffa300     lightgreen      ff6100
@@ -394,6 +398,8 @@ void engineClass::loadUserPreferences()
         emit dimColorChanged();
         m_wifiNotifyColor = mMainColor;
         emit wifiNotifyColorChanged();
+        mMessageColorLocal = mDimColor;
+        mMessageColorRemote = mMainColor;
     }
 }
 
@@ -1206,7 +1212,7 @@ int engineClass::msgFifoChanged()
                runExternalCmd("/bin/pptk-vibrate", {"200","200","1"});
                /* Display message */
                token[1].replace( QChar(SUBSTITUTE_CHAR_CODE), "," );
-               m_textMsgDisplay = m_textMsgDisplay + "<br> <font color='#00FF00'>" + token[1] + "</font>";
+               m_textMsgDisplay = m_textMsgDisplay + "<br> <font color='" + mMessageColorRemote + "'>" + token[1] + "</font>";
                emit textMsgDisplayChanged();
                return 0;
            }
@@ -2405,7 +2411,7 @@ void engineClass::on_denyButton_clicked()
 void engineClass::on_LineEdit_returnPressed(QString message)
 {
     if ( g_connectState ) {
-        m_textMsgDisplay = m_textMsgDisplay + "<br> <font color='#ffffff'>" + message + "</font>";
+        m_textMsgDisplay = m_textMsgDisplay + "<br> <font color='" + mMessageColorLocal + "'>" + message + "</font>";
         emit textMsgDisplayChanged();
         message.replace( ",", QChar(SUBSTITUTE_CHAR_CODE) );
         QString fifo_command = g_remoteOtpPeerIp + ",message," + message;
@@ -2676,7 +2682,7 @@ void engineClass::setNightModeEnabled(bool newNightModeEnabled)
 void engineClass::changeNightModeEnabled(bool newNightModeEnabled)
 {
     if ( newNightModeEnabled ) {
-                                    //  625 nm      green           640 m
+                                    //  625 nm      green           640 nm
         mMainColor = "#ff2100";     //  #ff6300     #00FF00         ff2100
         emit mainColorChanged();
         mHighColor = "#ff8080";     //  #ffa300     lightgreen      ff6100
@@ -2685,9 +2691,11 @@ void engineClass::changeNightModeEnabled(bool newNightModeEnabled)
         emit dimColorChanged();
         m_wifiNotifyColor = mMainColor;
         emit wifiNotifyColorChanged();
+        mMessageColorLocal = mDimColor;
+        mMessageColorRemote = mMainColor;
     }
     else {
-                                    //  625 nm      green           640 m
+                                    //  625 nm      green           640 nm
         mMainColor = "#00FF00";     //  #ff6300     #00FF00         ff2100
         emit mainColorChanged();
         mHighColor = "lightgreen";  //  #ffa300     lightgreen      ff6100
@@ -2696,6 +2704,8 @@ void engineClass::changeNightModeEnabled(bool newNightModeEnabled)
         emit dimColorChanged();
         m_wifiNotifyColor = mMainColor;
         emit wifiNotifyColorChanged();
+        mMessageColorLocal = mDimColor;
+        mMessageColorRemote = mMainColor;
     }
     setNightModeEnabled(newNightModeEnabled);
 }
