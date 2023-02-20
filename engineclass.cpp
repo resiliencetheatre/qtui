@@ -126,9 +126,9 @@ engineClass::engineClass(QObject *parent)
     m_wifiNotifyColor = mMainColor;
     emit wifiNotifyTextChanged();
     emit wifiNotifyColorChanged();
-
     /* Load about text content */
     loadAboutText();
+    mAudioDeviceBusy = false;
 
 }
 
@@ -1034,6 +1034,11 @@ void engineClass::quickButtonSend(int sendCode)
             QString fifo_command = g_remoteOtpPeerIp + ",message,Ledgreenoff";
             fifoWrite(fifo_command);
         }
+        if ( sendCode == 6 )
+        {
+            QString fifo_command = g_remoteOtpPeerIp + ",message,SonarPing";
+            fifoWrite(fifo_command);
+        }
     }
 }
 
@@ -1074,6 +1079,7 @@ int engineClass::msgFifoChanged()
        if ( token[1] == "answer_success") {
            updateCallStatusIndicator("Audio active", "lightgreen", "transparent",INDICATE_ONLY);
            token[1]="";
+           mAudioDeviceBusy = true;
            return 0;
        }
 
@@ -1109,6 +1115,7 @@ int engineClass::msgFifoChanged()
            m_SwipeViewIndex = 0;
            emit swipeViewIndexChanged();
            token[1]="";
+           mAudioDeviceBusy = false;
            return 0;
        }
 
@@ -1190,6 +1197,16 @@ int engineClass::msgFifoChanged()
                runExternalCmd("/bin/pptk-led", {"set", "green", "0"});
                QString fifo_command = g_remoteOtpPeerIp + ",message,Green led OFF [ " + mVoltage + " ] [ " + mnetworkStatusLabelValue +" ]";
                fifoWrite(fifo_command);
+               return 0;
+           }
+       }
+       if ( token[1] == "SonarPing") {
+           if ( g_connectState ) {
+               if ( !mAudioDeviceBusy ) {
+                   runExternalCmd("/bin/aplay", {"/etc/sonar.wav"});
+                   QString fifo_command = g_remoteOtpPeerIp + ",message,Sonar ping played [ " + mVoltage + " ] [ " + mnetworkStatusLabelValue +" ]";
+                   fifoWrite(fifo_command);
+               }
                return 0;
            }
        }
@@ -2350,6 +2367,7 @@ void engineClass::disconnectButton()
     emit callDialogVisibleChanged();
     eraseConnectionLabels();
     reloadKeyUsage();
+    mAudioDeviceBusy = false;
 }
 
 /* Popup buttons for CALL dialog */
@@ -2379,6 +2397,7 @@ void engineClass::on_answerButton_clicked()
     answerString = "127.0.0.1,connect_audio_as_server";
     fifoWrite( answerString );
     updateCallStatusIndicator("Audio connected", "green","transparent",INDICATE_ONLY);
+    mAudioDeviceBusy = true;
 }
 
 void engineClass::on_denyButton_clicked()

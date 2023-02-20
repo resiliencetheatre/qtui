@@ -218,7 +218,7 @@ Page {
             anchors.horizontalCenter: parent.horizontalCenter
             width: 60
             height: 15
-            text: "Ping"
+            text: "Check"
             font.pointSize: 7
             checkable: false
             onClicked: {
@@ -351,6 +351,38 @@ Page {
             checkable: false
             onClicked: {
                 eClass.quickButtonSend(5)
+                commandButtonsFrame.visible = false
+                eClass.registerTouch()
+            }
+            contentItem: Text {
+                text: parent.text
+                font: parent.font
+                opacity: enabled ? 1.0 : 0.3
+                color: eClass.mainColor
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
+            background: Rectangle {
+                anchors.fill: parent
+                color: parent.down ? eClass.highColor : "#000"
+                opacity: enabled ? 1 : 0.3
+                border.color: eClass.mainColor
+                radius: 2
+            }
+        }
+        Button {
+            id: msgSonarPing
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: 60
+            height: 15
+            text: "One Ping"
+            anchors.top: msgGreenLedOff.bottom
+            anchors.topMargin: 5
+            font.pointSize: 7
+            checkable: false
+            onClicked: {
+                eClass.quickButtonSend(6)
                 commandButtonsFrame.visible = false
                 eClass.registerTouch()
             }

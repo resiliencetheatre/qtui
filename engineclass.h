@@ -514,6 +514,7 @@ private:
     QString mDimColor;
     QString mMessageColorLocal;
     QString mMessageColorRemote;
+    bool mAudioDeviceBusy;
 
 
 
