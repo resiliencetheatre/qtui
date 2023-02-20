@@ -17,10 +17,10 @@ RESOURCES += qml.qrc
 # Additional import path used to resolve QML modules just for Qt Quick Designer
 # QML_DESIGNER_IMPORT_PATH =
 
-VERSION = v0.5
+VERSION = v0.5_gh
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
-CONFIG+=qml_debug
+CONFIG += qml_debug
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

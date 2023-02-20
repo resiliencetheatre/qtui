@@ -23,7 +23,7 @@ Page {
         font.pointSize: 10
         padding: 0
         bottomPadding: 20
-        color: "#00ff00"
+        color: eClass.mainColor
     }
 
     Item {
@@ -37,7 +37,7 @@ Page {
             anchors.leftMargin: 5
             text: qsTr("Wifi network")
             font.pointSize: 8
-            color: "#00ff00"
+            color: eClass.mainColor
         }
         Label {
             id: wifiNotesLabel
@@ -46,7 +46,7 @@ Page {
             anchors.leftMargin: 5
             text: qsTr("Scan and connect to wifi network")
             font.pointSize: 6
-            color: "#00ff00"
+            color: eClass.mainColor
         }
 
         // Erase All
@@ -69,16 +69,16 @@ Page {
                 text: parent.text
                 font: parent.font
                 opacity: enabled ? 1.0 : 0.3
-                color: parent.down ? "#0F0" : "#0D0"
+                color: eClass.mainColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#882200" : "#000"
+                color: parent.down ? eClass.dimColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: parent.down ? "#00FF00" : "#00FF00"
+                border.color: parent.down ? eClass.mainColor : eClass.mainColor
                 radius: 2
             }
         }
@@ -99,7 +99,7 @@ Page {
             width: control.width
             contentItem: Text {
                 text: modelData
-                color: "#00ff00"
+                color: eClass.mainColor
                 font: control.font
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
@@ -123,7 +123,7 @@ Page {
                 context.lineTo(width, 0);
                 context.lineTo(width / 2, height);
                 context.closePath();
-                context.fillStyle = control.pressed ? "#00FF00" : "#ff0000";
+                context.fillStyle = control.pressed ? eClass.mainColor : "#ff0000";
                 context.fill();
             }
         }
@@ -132,7 +132,7 @@ Page {
             rightPadding: control.indicator.width + control.spacing
             text: control.displayText
             font: control.font
-            color: "#00ff00"
+            color: eClass.mainColor
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
 
@@ -141,7 +141,7 @@ Page {
             color: "transparent"
             implicitWidth: 120
             implicitHeight: 20
-            border.color:  "#00ff00"
+            border.color:  eClass.mainColor
             border.width: control.visualFocus ? 2 : 1
             radius: 2
         }
@@ -159,7 +159,7 @@ Page {
             }
             background: Rectangle {
                 color: "#000000"
-                border.color: "#00ff00"
+                border.color: eClass.mainColor
                 radius: 2
             }
         }
@@ -185,16 +185,16 @@ Page {
             text: parent.text
             font: parent.font
             opacity: enabled ? 1.0 : 0.3
-            color: parent.down ? "#0F0" : "#0D0"
+            color: eClass.mainColor
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
         background: Rectangle {
             anchors.fill: parent
-            color: parent.down ? "#141" : "#000"
+            color: parent.down ? eClass.dimColor : "#000"
             opacity: enabled ? 1 : 0.3
-            border.color: parent.down ? "#0F0" : "#0D0"
+            border.color: eClass.mainColor
             radius: 2
         }
     }
@@ -209,8 +209,8 @@ Page {
         anchors.topMargin: 10
         padding: 1
         font.pointSize: 8
-        color: "#00ff00"
-        placeholderTextColor: "#009900"
+        color: eClass.mainColor
+        placeholderTextColor: eClass.dimColor
         placeholderText: "<wifi password>"
         onAccepted: {
 
@@ -226,7 +226,7 @@ Page {
             color: "#000000"
             anchors.fill: parent
             height: 20
-            border.color: "#00ff00"
+            border.color: eClass.mainColor
             border.width: 1
         }
     }
@@ -252,16 +252,16 @@ Page {
             text: parent.text
             font: parent.font
             opacity: enabled ? 1.0 : 0.3
-            color: parent.down ? "#0F0" : "#0D0"
+            color: eClass.mainColor
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
         background: Rectangle {
             anchors.fill: parent
-            color: parent.down ? "#141" : "#000"
+            color: parent.down ? eClass.dimColor : "#000"
             opacity: enabled ? 1 : 0.3
-            border.color: parent.down ? "#0F0" : "#0D0"
+            border.color: parent.down ? eClass.mainColor : eClass.dimColor
             radius: 2
         }
     }
@@ -277,7 +277,7 @@ Page {
         padding: 1
         font.pointSize: 6
         text: qsTr("Wifi status:")
-        color: "#00ff00"
+        color: eClass.mainColor
     }
 
     Text {
@@ -293,7 +293,7 @@ Page {
         font.pointSize: 8
         wrapMode: Text.WordWrap
         text: eClass.wifiStatusText
-        color: "#00ff00"
+        color: eClass.mainColor
     }
 
     // Wifi status button
@@ -316,16 +316,16 @@ Page {
             text: parent.text
             font: parent.font
             opacity: enabled ? 1.0 : 0.3
-            color: parent.down ? "#0F0" : "#0D0"
+            color: eClass.mainColor
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
         background: Rectangle {
             anchors.fill: parent
-            color: parent.down ? "#141" : "#000"
+            color: parent.down ? eClass.mainColor : "#000"
             opacity: enabled ? 1 : 0.3
-            border.color: parent.down ? "#0F0" : "#0D0"
+            border.color: parent.down ? eClass.mainColor : eClass.dimColor
             radius: 10
         }
     }
@@ -342,7 +342,7 @@ Page {
         padding: 1
         font.pointSize: 8
         text: qsTr("Options")
-        color: "#00ff00"
+        color: eClass.mainColor
     }
 
     // Checkbox (this was hard for me to understand)
@@ -366,7 +366,7 @@ Page {
             y: parent.height / 2 - height / 2
             radius: 2
             color: "transparent"
-            border.color: "#00FF00"
+            border.color: eClass.mainColor
 
             Rectangle {
                 width: 6
@@ -374,7 +374,7 @@ Page {
                 x: 2
                 y: 2
                 radius: 2
-                color: "#00FF00"
+                color: eClass.mainColor
                 visible: deepSleepCheckbox.checked
             }
         }
@@ -382,12 +382,12 @@ Page {
             text: deepSleepCheckbox.text
             font.pointSize: 8
             opacity: enabled ? 1.0 : 0.3
-            color: "#00FF00"
+            color: eClass.mainColor
             verticalAlignment: Text.AlignVCenter
             leftPadding: deepSleepCheckbox.indicator.width + deepSleepCheckbox.spacing
         }
     }
-
+    // LTE
     CheckBox {
         id: lteCheckbox
         anchors.top: deepSleepCheckbox.bottom
@@ -408,7 +408,7 @@ Page {
             y: parent.height / 2 - height / 2
             radius: 2
             color: "transparent"
-            border.color: "#00FF00"
+            border.color: eClass.mainColor
 
             Rectangle {
                 width: 6
@@ -416,7 +416,7 @@ Page {
                 x: 2
                 y: 2
                 radius: 2
-                color: "#00FF00"
+                color: eClass.mainColor
                 visible: lteCheckbox.checked
             }
         }
@@ -424,11 +424,55 @@ Page {
             text: lteCheckbox.text
             font.pointSize: 8
             opacity: enabled ? 1.0 : 0.3
-            color: "#00FF00"
+            color: eClass.mainColor
             verticalAlignment: Text.AlignVCenter
             leftPadding: lteCheckbox.indicator.width + lteCheckbox.spacing
         }
     }
+    // Night mode
+    CheckBox {
+        id: nightModeCheckbox
+        anchors.top: lteCheckbox.bottom
+        anchors.topMargin: -5
+        anchors.left: parent.left
+        anchors.leftMargin: 10
+        text: qsTr("Night mode")
+        checked: eClass.nightModeEnabled
+        onCheckedChanged: {
+            if (checked !== eClass.changeNightModeEnabled ) {
+                eClass.changeNightModeEnabled(nightModeCheckbox.checkState)
+            }
+        }
+        indicator: Rectangle {
+            implicitWidth: 10
+            implicitHeight: 10
+            x: nightModeCheckbox.leftPadding
+            y: parent.height / 2 - height / 2
+            radius: 2
+            color: "transparent"
+            border.color: eClass.mainColor
+
+            Rectangle {
+                width: 6
+                height: 6
+                x: 2
+                y: 2
+                radius: 2
+                color: eClass.mainColor
+                visible: nightModeCheckbox.checked
+            }
+        }
+        contentItem: Text {
+            text: nightModeCheckbox.text
+            font.pointSize: 8
+            opacity: enabled ? 1.0 : 0.3
+            color: eClass.mainColor
+            verticalAlignment: Text.AlignVCenter
+            leftPadding: nightModeCheckbox.indicator.width + nightModeCheckbox.spacing
+        }
+    }
+
+
 
     // About button
     Button {
@@ -449,16 +493,16 @@ Page {
             text: parent.text
             font: parent.font
             opacity: enabled ? 1.0 : 0.3
-            color: parent.down ? "#0F0" : "#0D0"
+            color: parent.down ? eClass.mainColor : eClass.dimColor
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
         background: Rectangle {
             anchors.fill: parent
-            color: parent.down ? "#141" : "#000"
+            color: parent.down ? eClass.mainColor : "#000"
             opacity: enabled ? 1 : 0.3
-            border.color: parent.down ? "#0F0" : "#0D0"
+            border.color: parent.down ? eClass.dimColor : eClass.mainColor
             radius: 10
         }
     }
@@ -474,7 +518,7 @@ Page {
         padding: 1
         font.pointSize: 6
         text: eClass.appVersion() // qsTr("v0.3 [DEV]")
-        color: "#00ff00"
+        color: eClass.mainColor
         horizontalAlignment: Text.AlignHCenter
     }
 
@@ -489,7 +533,7 @@ Page {
             closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
             background: Rectangle {
                 color: "#000000"
-                border.color: "#00FF00"
+                border.color: eClass.mainColor
                 radius: 2
             }
 
@@ -497,7 +541,7 @@ Page {
                 id: popupTitleText
                     font.pointSize: 12
                     text: "About"
-                    color: "#00FF00"
+                    color: eClass.mainColor
             }
             ScrollView {
                 id: view
@@ -511,7 +555,7 @@ Page {
                     textFormat: Text.RichText
                     width: 200
                     wrapMode: Text.WordWrap
-                    color: "#00FF00"
+                    color: eClass.mainColor
                     text: eClass.aboutTextContent
                     font.pointSize: 7
                 }
@@ -537,16 +581,16 @@ Page {
                     text: parent.text
                     font: parent.font
                     opacity: enabled ? 1.0 : 0.3
-                    color: parent.down ? "#0F0" : "#0D0"
+                    color: eClass.mainColor
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                 }
                 background: Rectangle {
                     anchors.fill: parent
-                    color: parent.down ? "#141" : "#000"
+                    color: parent.down ? eClass.dimColor : "transparent"
                     opacity: enabled ? 1 : 0.3
-                    border.color: parent.down ? "#0F0" : "#0D0"
+                    border.color: eClass.mainColor
                     radius: 2
                 }
             }

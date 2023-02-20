@@ -7,7 +7,7 @@ Page {
     id: page
     width: 720
     height: 1440
-    property string p_commandButtonColor: "#00FF00"
+    property string p_commandButtonColor: eClass.mainColor
 
     Component.onCompleted: {
     }
@@ -68,7 +68,7 @@ Page {
                 text: eClass.insigniaLabelText
                 font.pointSize: 12
                 padding: 0
-                color: "#00ff00"
+                color: eClass.mainColor
             }
             Label {
                 id: insigniaLabelState
@@ -77,7 +77,7 @@ Page {
                 text: eClass.insigniaLabelStateText
                 font.pointSize: 8
                 padding: 0
-                color: "#00ff00"
+                color: eClass.mainColor
             }
         }
     }
@@ -100,7 +100,7 @@ Page {
             text: eClass.statusMessage
             font.pointSize: 8
             padding: 0
-            color: "#00ff00"
+            color: eClass.mainColor
         }
         // TODO: Remove this
         Image {
@@ -145,31 +145,31 @@ Page {
                 id: plmnStatus
                 text: eClass.plmn
                 font.pointSize: 6
-                color: "#00cf00"
+                color: eClass.dimColor
             }
             Label {
                 id: taStatus
                 text: eClass.ta
                 font.pointSize: 6
-                color: "#00cf00"
+                color: eClass.dimColor
             }
             Label {
                 id: gcStatus
                 text: eClass.gc
                 font.pointSize: 6
-                color: "#00cf00"
+                color: eClass.dimColor
             }
             Label {
                 id: scStatus
                 text: eClass.sc
                 font.pointSize: 6
-                color: "#00cf00"
+                color: eClass.dimColor
             }
             Label {
                 id: acStatus
                 text: eClass.ac
                 font.pointSize: 6
-                color: "#00cf00"
+                color: eClass.dimColor
             }
         }
         RowLayout {
@@ -180,25 +180,25 @@ Page {
                 id: rssiStatus
                 text: eClass.rssi
                 font.pointSize: 6
-                color: "#00cf00"
+                color: eClass.dimColor
             }
             Label {
                 id: rsrqStatus
                 text: eClass.rsrq
                 font.pointSize: 6
-                color: "#00cf00"
+                color: eClass.dimColor
             }
             Label {
                 id: rsrpStatus
                 text: eClass.rsrp
                 font.pointSize: 6
-                color: "#00cf00"
+                color: eClass.dimColor
             }
             Label {
                 id: snrStatus
                 text: eClass.snr
                 font.pointSize: 6
-                color: "#00cf00"
+                color: eClass.dimColor
             }
 
         }
@@ -247,9 +247,9 @@ Page {
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000" // "#141" : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: parent.down ? "#0F0" : "#0D0"
+                border.color: eClass.mainColor // parent.down ? "#0F0" : "#0D0"
                 radius: 2
             }
         }
@@ -291,9 +291,9 @@ Page {
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: "#00FF00"
+                border.color: eClass.mainColor
                 border.width: 1
                 radius: 2
             }
@@ -336,9 +336,9 @@ Page {
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: "#00FF00"
+                border.color: eClass.mainColor
                 border.width: 1
                 radius: 2
             }
@@ -382,9 +382,9 @@ Page {
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: "#00FF00"
+                border.color: eClass.mainColor
                 border.width: 1
                 radius: 2
             }
@@ -427,9 +427,9 @@ Page {
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: "#00FF00"
+                border.color: eClass.mainColor
                 border.width: 1
                 radius: 2
             }
@@ -472,9 +472,9 @@ Page {
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: "#00FF00"
+                border.color: eClass.mainColor
                 border.width: 1
                 radius: 2
             }
@@ -518,9 +518,9 @@ Page {
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: "#00FF00"
+                border.color: eClass.mainColor
                 border.width: 1
                 radius: 2
             }
@@ -563,9 +563,9 @@ Page {
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: "#00FF00"
+                border.color: eClass.mainColor
                 border.width: 1
                 radius: 2
             }
@@ -608,9 +608,9 @@ Page {
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: "#00FF00"
+                border.color: eClass.mainColor
                 border.width: 1
                 radius: 2
             }
@@ -654,7 +654,7 @@ Page {
                 elide: Text.ElideRight
             }
             background: Rectangle {
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
                 border.color: p_commandButtonColor
                 border.width: 1
@@ -688,9 +688,9 @@ Page {
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: "#00FF00"
+                border.color: eClass.mainColor
                 border.width: 1
                 radius: 2
             }
@@ -731,7 +731,7 @@ Page {
                 elide: Text.ElideRight
             }
             background: Rectangle {
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
                 border.color: p_commandButtonColor
                 border.width: 1
@@ -766,7 +766,7 @@ Page {
                 elide: Text.ElideRight
             }
             background: Rectangle {
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
                 border.color: p_commandButtonColor
                 border.width: 1
@@ -789,43 +789,43 @@ Page {
                 keyStatusFrame.visible = !keyStatusFrame.visible
                 eClass.registerTouch()
                 plmnStatus.text = "[PLMN]"
-                plmnStatus.color = "#00FF00"
+                plmnStatus.color = eClass.mainColor
                 taStatus.text = "[TAC]"
-                taStatus.color = "#00FF00"
+                taStatus.color = eClass.mainColor
                 gcStatus.text = "[GLOBAL CELL]"
-                gcStatus.color = "#00FF00"
+                gcStatus.color = eClass.mainColor
                 scStatus.text = "[SERV CELL]"
-                scStatus.color = "#00FF00"
+                scStatus.color = eClass.mainColor
                 acStatus.text = "[RF CH]"
-                acStatus.color = "#00FF00"
+                acStatus.color = eClass.mainColor
                 rssiStatus.text = "[RSSI]"
-                rssiStatus.color = "#00FF00"
+                rssiStatus.color = eClass.mainColor
                 rsrqStatus.text = "[RSRQ]"
-                rsrqStatus.color = "#00FF00"
+                rsrqStatus.color = eClass.mainColor
                 rsrpStatus.text = "[RSRP]"
-                rsrpStatus.color = "#00FF00"
+                rsrpStatus.color = eClass.mainColor
                 snrStatus.text = "[SNR]"
-                snrStatus.color = "#00FF00"
+                snrStatus.color = eClass.mainColor
             }
             onReleased: {
                 plmnStatus.text = eClass.plmn
-                plmnStatus.color = "#00cf00"
+                plmnStatus.color = eClass.dimColor
                 taStatus.text = eClass.ta
-                taStatus.color = "#00cf00"
+                taStatus.color = eClass.dimColor
                 gcStatus.text = eClass.gc
-                gcStatus.color = "#00cf00"
+                gcStatus.color = eClass.dimColor
                 scStatus.text = eClass.sc
-                scStatus.color = "#00cf00"
+                scStatus.color = eClass.dimColor
                 acStatus.text = eClass.ac
-                acStatus.color = "#00cf00"
+                acStatus.color = eClass.dimColor
                 rssiStatus.text = eClass.rssi
-                rssiStatus.color = "#00cf00"
+                rssiStatus.color = eClass.dimColor
                 rsrqStatus.text = eClass.rsrq
-                rsrqStatus.color = "#00cf00"
+                rsrqStatus.color = eClass.dimColor
                 rsrpStatus.text = eClass.rsrp
-                rsrpStatus.color = "#00cf00"
+                rsrpStatus.color = eClass.dimColor
                 snrStatus.text = eClass.snr
-                snrStatus.color = "#00cf00"
+                snrStatus.color = eClass.dimColor
             }
 
             onClicked: {
@@ -834,7 +834,7 @@ Page {
                 text: parent.text
                 font: parent.font
                 opacity: enabled ? 1.0 : 0.3
-                color: parent.down ? "#00FF00" : "#00FF00"
+                color: parent.down ? eClass.mainColor : eClass.mainColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
@@ -843,7 +843,7 @@ Page {
                 anchors.fill: parent
                 color: parent.down ? "#151" : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: parent.down ? "#00FF00" : "#00FF00"
+                border.color: parent.down ? eClass.mainColor : eClass.mainColor
                 radius: 0
                 width: 1
             }
@@ -878,7 +878,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: eClass.peer_0_keyPercentage
                 font.pointSize: 10
-                color: "#00FF00"
+                color: eClass.mainColor
             }
         }
 
@@ -894,7 +894,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: eClass.peer_1_keyPercentage
                 font.pointSize: 8
-                color: "#00FF00"
+                color: eClass.mainColor
             }
         }
 
@@ -910,7 +910,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: eClass.peer_2_keyPercentage
                 font.pointSize: 8
-                color: "#00FF00"
+                color: eClass.mainColor
             }
         }
         Rectangle {
@@ -925,7 +925,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: eClass.peer_3_keyPercentage
                 font.pointSize: 8
-                color: "#00FF00"
+                color: eClass.mainColor
             }
         }
         Rectangle {
@@ -940,7 +940,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: eClass.peer_4_keyPercentage
                 font.pointSize: 8
-                color: "#00FF00"
+                color: eClass.mainColor
             }
         }
         Rectangle {
@@ -955,7 +955,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: eClass.peer_5_keyPercentage
                 font.pointSize: 8
-                color: "#00FF00"
+                color: eClass.mainColor
             }
         }
         // ROW 3
@@ -971,7 +971,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: eClass.peer_6_keyPercentage
                 font.pointSize: 8
-                color: "#00FF00"
+                color: eClass.mainColor
             }
         }
         Rectangle {
@@ -986,7 +986,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: eClass.peer_7_keyPercentage
                 font.pointSize: 8
-                color: "#00FF00"
+                color: eClass.mainColor
             }
         }
         Rectangle {
@@ -1001,7 +1001,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: eClass.peer_8_keyPercentage
                 font.pointSize: 8
-                color: "#00FF00"
+                color: eClass.mainColor
             }
         }
         Rectangle {
@@ -1016,7 +1016,7 @@ Page {
                 horizontalAlignment: Text.AlignHCenter
                 text: eClass.peer_9_keyPercentage
                 font.pointSize: 8
-                color: "#00FF00"
+                color: eClass.mainColor
             }
         }
     }

@@ -54,7 +54,7 @@ ApplicationWindow {
             horizontalAlignment: Text.AlignHleft
             verticalAlignment: Text.AlignVCenter
             font.pointSize: 7
-            color: "#0f0"
+            color: eClass.mainColor
         }
         Component.onCompleted: {
         }
@@ -75,7 +75,7 @@ ApplicationWindow {
             horizontalAlignment: Text.AlignHleft
             verticalAlignment: Text.AlignVCenter
             font.pointSize: 7
-            color: "#0f0"
+            color: eClass.mainColor
         }
     }
     Item {
@@ -92,7 +92,7 @@ ApplicationWindow {
             height: connectionLabel.height
             color: "#000000"
             border.width: 0
-            border.color: "#0f0"
+            border.color: eClass.mainColor
         }
         Text {
             id: connectionLabelText
@@ -117,7 +117,7 @@ ApplicationWindow {
             height: spacer.height
             color: "#000000"
             border.width: 1
-            border.color: "#0f0"
+            border.color: eClass.mainColor
         }
     }
 
@@ -159,7 +159,7 @@ ApplicationWindow {
             height: spacerTwo.height
             color: "#000000"
             border.width: 1
-            border.color: "#0f0"
+            border.color: eClass.mainColor
         }
     }
 

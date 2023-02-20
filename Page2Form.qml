@@ -9,7 +9,7 @@ Page {
     property alias msgHistory: msgHistory
 
     id: pageTwo
-    width: 240 // 720
+    width: 240
     height: 1440
     background: Rectangle {
         color: "#000000"
@@ -26,7 +26,7 @@ Page {
         text: qsTr("Messaging")
         font.pointSize: 10
         padding: 0
-        color: "#00ff00"
+        color: eClass.mainColor
     }
 
     Button {
@@ -48,16 +48,16 @@ Page {
             text: parent.text
             font: parent.font
             opacity: enabled ? 1.0 : 0.3
-            color: parent.down ? "#0F0" : "#0D0"
+            color: eClass.mainColor
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
         background: Rectangle {
             anchors.fill: parent
-            color: parent.down ? "#141" : "#000"
+            color: parent.down ? eClass.highColor : "#000"
             opacity: enabled ? 1 : 0.3
-            border.color: parent.down ? "#0F0" : "#0D0"
+            border.color: eClass.mainColor
             radius: 2
         }
     }
@@ -67,9 +67,9 @@ Page {
         y: 10
         radius: 0
         color: "#000000"
-        width: 240 // parent.width
+        width: 240
         height: 280
-        border.color: "#00ff00"
+        border.color: eClass.mainColor
         border.width: 1
 
         Rectangle {
@@ -110,7 +110,7 @@ Page {
                     text: eClass.textMsgDisplay
                     font.family: "DejaVu"
                     font.pointSize: 8
-                    color: "#00ff00"
+                    color: eClass.mainColor
                     readOnly: true
                     wrapMode: Text.WordWrap
                     onContentSizeChanged: {
@@ -134,8 +134,8 @@ Page {
         height: 24
         padding: 2
         font.pointSize: 8
-        color: "#00ff00"
-        placeholderTextColor: "#009900"
+        color: eClass.mainColor
+        placeholderTextColor: eClass.dimColor
         placeholderText: "Write here, <enter> to send"
         focus: true
         onAccepted: {
@@ -156,7 +156,7 @@ Page {
             color: "#000000"
             anchors.fill: parent
             height: 24
-            border.color: "#00ff00"
+            border.color: eClass.mainColor
             border.width: 1
         }
     }
@@ -168,7 +168,7 @@ Page {
         text: qsTr("0/190")
         font.pointSize: 8
         padding: 0
-        color: "#00CC00"
+        color: eClass.mainColor
     }
 
     Frame {
@@ -182,7 +182,7 @@ Page {
         anchors.verticalCenter: textFlow.verticalCenter
         background: Rectangle {
             color: "transparent"
-            border.color: "#00FF00"
+            border.color: eClass.mainColor
             border.width: 0
             radius: 2
         }
@@ -230,16 +230,16 @@ Page {
                 text: parent.text
                 font: parent.font
                 opacity: enabled ? 1.0 : 0.3
-                color: parent.down ? "#0F0" : "#0D0"
+                color: eClass.mainColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: parent.down ? "#0F0" : "#0D0"
+                border.color: eClass.mainColor
                 radius: 2
             }
         }
@@ -262,16 +262,16 @@ Page {
                 text: parent.text
                 font: parent.font
                 opacity: enabled ? 1.0 : 0.3
-                color: parent.down ? "#0F0" : "#0D0"
+                color: eClass.mainColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: parent.down ? "#0F0" : "#0D0"
+                border.color: eClass.mainColor
                 radius: 2
             }
         }
@@ -294,16 +294,16 @@ Page {
                 text: parent.text
                 font: parent.font
                 opacity: enabled ? 1.0 : 0.3
-                color: parent.down ? "#0F0" : "#0D0"
+                color: eClass.mainColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: parent.down ? "#0F0" : "#0D0"
+                border.color: eClass.mainColor
                 radius: 2
             }
         }
@@ -326,16 +326,16 @@ Page {
                 text: parent.text
                 font: parent.font
                 opacity: enabled ? 1.0 : 0.3
-                color: parent.down ? "#0F0" : "#0D0"
+                color: eClass.mainColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: parent.down ? "#0F0" : "#0D0"
+                border.color: eClass.mainColor
                 radius: 2
             }
         }
@@ -358,16 +358,16 @@ Page {
                 text: parent.text
                 font: parent.font
                 opacity: enabled ? 1.0 : 0.3
-                color: parent.down ? "#0F0" : "#0D0"
+                color: eClass.mainColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
             background: Rectangle {
                 anchors.fill: parent
-                color: parent.down ? "#141" : "#000"
+                color: parent.down ? eClass.highColor : "#000"
                 opacity: enabled ? 1 : 0.3
-                border.color: parent.down ? "#0F0" : "#0D0"
+                border.color: eClass.mainColor
                 radius: 2
             }
         }

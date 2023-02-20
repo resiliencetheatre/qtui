@@ -26,8 +26,16 @@
 
             QT_ASSUME_STDERR_HAS_CONSOLE=1
 
-            This code is highly experimental.
+            Random pick from Internet:
 
+            "Light source of wavelength between 620nm and 700nm
+            will be visible to people with normal red vision,
+            but will have no effect on scotopic retina cell,
+            thereby preserving night vision."
+
+            https://academo.org/demos/wavelength-to-colour-relationship/
+
+            This code is highly experimental.
 */
 
 #include "engineclass.h"
@@ -71,6 +79,14 @@
 engineClass::engineClass(QObject *parent)
     : QObject{parent}
 {
+    /* Initial UI colors */
+    mMainColor = "#00FF00";
+    emit mainColorChanged();
+    mHighColor = "lightgreen";
+    emit highColorChanged();
+    mDimColor = "#21cc00";
+    emit dimColorChanged();
+
     QTimer::singleShot(2 * 1000, this, SLOT(loadSettings()));
     QTimer::singleShot(4 * 1000, this, SLOT(initEngine()));
     /* environment and proximity evaluation timers */
@@ -105,19 +121,33 @@ engineClass::engineClass(QObject *parent)
 
     /* Set default wifi status on top bar*/
     m_wifiNotifyText = "WIFI";
-    m_wifiNotifyColor = "#00FF00";
+    m_wifiNotifyColor = mMainColor;
     emit wifiNotifyTextChanged();
     emit wifiNotifyColorChanged();
 
     /* Load about text content */
     loadAboutText();
 
-
 }
 
 QString engineClass::appVersion()
 {
     return APP_VERSION;
+}
+
+QString engineClass::getMainColor()
+{
+    return mMainColor;
+}
+
+QString engineClass::getHighColor()
+{
+    return mHighColor;
+}
+
+QString engineClass::getDimColor()
+{
+    return mDimColor;
 }
 
 void engineClass::runExternalCmd(QString command, QStringList parameters){
@@ -177,7 +207,6 @@ bool engineClass::getPowerOffVisible()
 void engineClass::readPwrGpioButtonTimer()
 {
     if ( m_deviceLocked == false ) {
-        qDebug() << "readPwrGpioButtonTimer()";
         if ( mPwrButtonCycle && mPwrButtonReleased == false ) {
             qDebug() << "Power button held 2 s detected";
             m_SwipeViewIndex = 0;
@@ -341,7 +370,33 @@ void engineClass::loadUserPreferences()
     emit deepSleepEnabledChanged();
     m_lteEnabled = settings.value("lte",false).toBool();
     emit lteEnabledChanged();
+    m_nightModeEnabled = settings.value("nightmode",false).toBool();
+    emit nightModeEnabledChanged();
+
+    if ( m_nightModeEnabled ) {
+                                    //  625 nm      Green           640 m
+        mMainColor = "#ff2100";     //  #ff6300     #00FF00         ff2100
+        emit mainColorChanged();
+        mHighColor = "#ff8080";     //  #ffa300     lightgreen      ff6100
+        emit highColorChanged();
+        mDimColor = "#cc2100";      //  #dd5300     21cc00          cc2100
+        emit dimColorChanged();
+        m_wifiNotifyColor = mMainColor;
+        emit wifiNotifyColorChanged();
+    }
+    else {
+                                    //  625 nm      Green           640 m
+        mMainColor = "#00FF00";     //  #ff6300     #00FF00         ff2100
+        emit mainColorChanged();
+        mHighColor = "lightgreen";  //  #ffa300     lightgreen      ff6100
+        emit highColorChanged();
+        mDimColor = "#21cc00";      //  #dd5300     21cc00          cc2100
+        emit dimColorChanged();
+        m_wifiNotifyColor = mMainColor;
+        emit wifiNotifyColorChanged();
+    }
 }
+
 void engineClass::saveUserPreferences()
 {
     QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
@@ -404,25 +459,25 @@ void engineClass::loadSettings()
     reloadKeyUsage();
 
     // Set peer contact colors
-    m_peer_0_CallSignColor = "green";
+    m_peer_0_CallSignColor = mMainColor;
     emit peer_0_NameColorChanged();
-    m_peer_1_CallSignColor = "green";
+    m_peer_1_CallSignColor = mMainColor;
     emit peer_1_NameColorChanged();
-    m_peer_2_CallSignColor = "green";
+    m_peer_2_CallSignColor = mMainColor;
     emit peer_2_NameColorChanged();
-    m_peer_3_CallSignColor = "green";
+    m_peer_3_CallSignColor = mMainColor;
     emit peer_3_NameColorChanged();
-    m_peer_4_CallSignColor = "green";
+    m_peer_4_CallSignColor = mMainColor;
     emit peer_4_NameColorChanged();
-    m_peer_5_CallSignColor = "green";
+    m_peer_5_CallSignColor = mMainColor;
     emit peer_5_NameColorChanged();
-    m_peer_6_CallSignColor = "green";
+    m_peer_6_CallSignColor = mMainColor;
     emit peer_6_NameColorChanged();
-    m_peer_7_CallSignColor = "green";
+    m_peer_7_CallSignColor = mMainColor;
     emit peer_7_NameColorChanged();
-    m_peer_8_CallSignColor = "green";
+    m_peer_8_CallSignColor = mMainColor;
     emit peer_8_NameColorChanged();
-    m_peer_9_CallSignColor = "green";
+    m_peer_9_CallSignColor = mMainColor;
     emit peer_9_NameColorChanged();
 }
 
@@ -540,7 +595,7 @@ void engineClass::proximityTimerTick()
     }
     // Use Wifi symbol to debug proximity sensor
     if ( proxValueAvailable ) {
-        if ( proxLine.toInt() > 30 ) {
+        if ( proxLine.toInt() > 400 ) {
             m_wifiNotifyText = "WIFI*";
             emit wifiNotifyTextChanged();
             // Swipe to front page & block touch
@@ -612,7 +667,7 @@ Signal information
            emit voltageNotifyColorChanged();
         }
         if (voltageCompareValue > 3.7) {
-           mvoltageNotifyColor = "#00FF00";
+           mvoltageNotifyColor = mMainColor;
            emit voltageNotifyColorChanged();
         }
         if (voltageCompareValue < 3.6) {
@@ -674,7 +729,7 @@ Signal information
         int voltCompare = line.toInt();
         // Green > 20 %
         if ( voltCompare > 20 ) {
-           mvoltageNotifyColor = "#00FF00";
+           mvoltageNotifyColor = mMainColor;
            emit voltageNotifyColorChanged();
         }
         // Yellow 10 - 20 %
@@ -708,9 +763,9 @@ Signal information
     int latencyIntms = networkElements[0].toInt()/1000;
     QString indicateValue = QString::number(latencyIntms) + " ms";
     mnetworkStatusLabelValue = indicateValue;
-    mnetworkStatusLabelColor="#00FF00";
+    mnetworkStatusLabelColor=mMainColor;
     if ( latencyIntms < 200 ) {
-        mnetworkStatusLabelColor="#00FF00";
+        mnetworkStatusLabelColor=mMainColor;
     }
     if ( latencyIntms == 0 ) {
         mnetworkStatusLabelColor="#FF5555";
@@ -761,73 +816,73 @@ void engineClass::peerLatency()
     }
     /* Peer latency */
     if ( m_peerLatencyValue[0].toInt() > 0 ) {
-        m_peer_0_CallSignColor = "lightgreen";
+        m_peer_0_CallSignColor = mHighColor;
         emit peer_0_NameColorChanged();
     } else {
-        m_peer_0_CallSignColor = "green";
+        m_peer_0_CallSignColor = mMainColor;
         emit peer_0_NameColorChanged();
     }
     if ( m_peerLatencyValue[1].toInt() > 0 ) {
-        m_peer_1_CallSignColor = "lightgreen";
+        m_peer_1_CallSignColor = mHighColor;
         emit peer_1_NameColorChanged();
     } else {
-        m_peer_1_CallSignColor = "green";
+        m_peer_1_CallSignColor = mMainColor;
         emit peer_1_NameColorChanged();
     }
     if ( m_peerLatencyValue[2].toInt() > 0 ) {
-        m_peer_2_CallSignColor = "lightgreen";
+        m_peer_2_CallSignColor = mHighColor;
         emit peer_2_NameColorChanged();
     } else {
-        m_peer_2_CallSignColor = "green";
+        m_peer_2_CallSignColor = mMainColor;
         emit peer_2_NameColorChanged();
     }
     if ( m_peerLatencyValue[3].toInt() > 0 ) {
-        m_peer_3_CallSignColor = "lightgreen";
+        m_peer_3_CallSignColor = mHighColor;
         emit peer_3_NameColorChanged();
     } else {
-        m_peer_3_CallSignColor = "green";
+        m_peer_3_CallSignColor = mMainColor;
         emit peer_3_NameColorChanged();
     }
     if ( m_peerLatencyValue[4].toInt() > 0 ) {
-        m_peer_4_CallSignColor = "lightgreen";
+        m_peer_4_CallSignColor = mHighColor;
         emit peer_4_NameColorChanged();
     } else {
-        m_peer_4_CallSignColor = "green";
+        m_peer_4_CallSignColor = mMainColor;
         emit peer_4_NameColorChanged();
     }
     if ( m_peerLatencyValue[5].toInt() > 0 ) {
-        m_peer_5_CallSignColor = "lightgreen";
+        m_peer_5_CallSignColor = mHighColor;
         emit peer_5_NameColorChanged();
     } else {
-        m_peer_5_CallSignColor = "green";
+        m_peer_5_CallSignColor = mMainColor;
         emit peer_5_NameColorChanged();
     }
     if ( m_peerLatencyValue[6].toInt() > 0 ) {
-        m_peer_6_CallSignColor = "lightgreen";
+        m_peer_6_CallSignColor = mHighColor;
         emit peer_6_NameColorChanged();
     } else {
-        m_peer_6_CallSignColor = "green";
+        m_peer_6_CallSignColor = mMainColor;
         emit peer_6_NameColorChanged();
     }
     if ( m_peerLatencyValue[7].toInt() > 0 ) {
-        m_peer_7_CallSignColor = "lightgreen";
+        m_peer_7_CallSignColor = mHighColor;
         emit peer_7_NameColorChanged();
     } else {
-        m_peer_7_CallSignColor = "green";
+        m_peer_7_CallSignColor = mMainColor;
         emit peer_7_NameColorChanged();
     }
     if ( m_peerLatencyValue[8].toInt() > 0 ) {
-        m_peer_8_CallSignColor = "lightgreen";
+        m_peer_8_CallSignColor = mHighColor;
         emit peer_8_NameColorChanged();
     } else {
-        m_peer_8_CallSignColor = "green";
+        m_peer_8_CallSignColor = mMainColor;
         emit peer_8_NameColorChanged();
     }
     if ( m_peerLatencyValue[9].toInt() > 0 ) {
-        m_peer_9_CallSignColor = "lightgreen";
+        m_peer_9_CallSignColor = mHighColor;
         emit peer_9_NameColorChanged();
     } else {
-        m_peer_9_CallSignColor = "green";
+        m_peer_9_CallSignColor = mMainColor;
         emit peer_9_NameColorChanged();
     }
 }
@@ -1200,61 +1255,61 @@ void engineClass::setIndicatorForIncomingConnection(QString peerIp)
     if( nodeNumber == 0 ) {
           m_peer_0_connection_label = true;
           emit peer_0_LabelChanged();
-          m_peer_0_connection_label_color = "#00FF00";
+          m_peer_0_connection_label_color = mMainColor;
           emit peer_0_LabelColorChanged();
     }
     if( nodeNumber == 1 ) {
           m_peer_1_connection_label = true;
           emit peer_1_LabelChanged();
-          m_peer_1_connection_label_color = "#00FF00";
+          m_peer_1_connection_label_color = mMainColor;
           emit peer_1_LabelColorChanged();
     }
     if( nodeNumber == 2 ) {
           m_peer_2_connection_label = true;
           emit peer_2_LabelChanged();
-          m_peer_2_connection_label_color = "#00FF00";
+          m_peer_2_connection_label_color = mMainColor;
           emit peer_2_LabelColorChanged();
     }
     if( nodeNumber == 3 ) {
           m_peer_3_connection_label = true;
           emit peer_3_LabelChanged();
-          m_peer_3_connection_label_color = "#00FF00";
+          m_peer_3_connection_label_color = mMainColor;
           emit peer_3_LabelColorChanged();
     }
     if( nodeNumber == 4 ) {
           m_peer_4_connection_label = true;
           emit peer_4_LabelChanged();
-          m_peer_4_connection_label_color = "#00FF00";
+          m_peer_4_connection_label_color = mMainColor;
           emit peer_4_LabelColorChanged();
     }
     if( nodeNumber == 5 ) {
           m_peer_5_connection_label = true;
           emit peer_5_LabelChanged();
-          m_peer_5_connection_label_color = "#00FF00";
+          m_peer_5_connection_label_color = mMainColor;
           emit peer_5_LabelColorChanged();
     }
     if( nodeNumber == 6 ) {
           m_peer_6_connection_label = true;
           emit peer_6_LabelChanged();
-          m_peer_6_connection_label_color = "#00FF00";
+          m_peer_6_connection_label_color = mMainColor;
           emit peer_6_LabelColorChanged();
     }
     if( nodeNumber == 7 ) {
           m_peer_7_connection_label = true;
           emit peer_7_LabelChanged();
-          m_peer_7_connection_label_color = "#00FF00";
+          m_peer_7_connection_label_color = mMainColor;
           emit peer_7_LabelColorChanged();
     }
     if( nodeNumber == 8 ) {
           m_peer_8_connection_label = true;
           emit peer_8_LabelChanged();
-          m_peer_8_connection_label_color = "#00FF00";
+          m_peer_8_connection_label_color = mMainColor;
           emit peer_8_LabelColorChanged();
     }
     if( nodeNumber == 9 ) {
           m_peer_9_connection_label = true;
           emit peer_9_LabelChanged();
-          m_peer_9_connection_label_color = "#00FF00";
+          m_peer_9_connection_label_color = mMainColor;
           emit peer_9_LabelColorChanged();
     }
 }
@@ -1306,70 +1361,70 @@ int engineClass::fifoChanged()
                     connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
                     m_peer_0_connection_label = true;
                     emit peer_0_LabelChanged();
-                    m_peer_0_connection_label_color = "#00FF00";
+                    m_peer_0_connection_label_color = mMainColor;
                     emit peer_0_LabelColorChanged();
               }
               if( nodeNumber == 1 ) {
                     connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
                     m_peer_1_connection_label = true;
                     emit peer_1_LabelChanged();
-                    m_peer_1_connection_label_color = "#00FF00";
+                    m_peer_1_connection_label_color = mMainColor;
                     emit peer_1_LabelColorChanged();
               }
               if( nodeNumber == 2 ) {
                     connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
                     m_peer_2_connection_label = true;
                     emit peer_2_LabelChanged();
-                    m_peer_2_connection_label_color = "#00FF00";
+                    m_peer_2_connection_label_color = mMainColor;
                     emit peer_2_LabelColorChanged();
               }
               if( nodeNumber == 3 ) {
                     connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
                     m_peer_3_connection_label = true;
                     emit peer_3_LabelChanged();
-                    m_peer_3_connection_label_color = "#00FF00";
+                    m_peer_3_connection_label_color = mMainColor;
                     emit peer_3_LabelColorChanged();
               }
               if( nodeNumber == 4 ) {
                     connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
                     m_peer_4_connection_label = true;
                     emit peer_4_LabelChanged();
-                    m_peer_4_connection_label_color = "#00FF00";
+                    m_peer_4_connection_label_color = mMainColor;
                     emit peer_4_LabelColorChanged();
               }
               if( nodeNumber == 5 ) {
                     connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
                     m_peer_5_connection_label = true;
                     emit peer_5_LabelChanged();
-                    m_peer_5_connection_label_color = "#00FF00";
+                    m_peer_5_connection_label_color = mMainColor;
                     emit peer_5_LabelColorChanged();
               }
               if( nodeNumber == 6 ) {
                     connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
                     m_peer_6_connection_label = true;
                     emit peer_6_LabelChanged();
-                    m_peer_6_connection_label_color = "#00FF00";
+                    m_peer_6_connection_label_color = mMainColor;
                     emit peer_6_LabelColorChanged();
               }
               if( nodeNumber == 7 ) {
                     connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
                     m_peer_7_connection_label = true;
                     emit peer_7_LabelChanged();
-                    m_peer_7_connection_label_color = "#00FF00";
+                    m_peer_7_connection_label_color = mMainColor;
                     emit peer_7_LabelColorChanged();
               }
               if( nodeNumber == 8 ) {
                     connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
                     m_peer_8_connection_label = true;
                     emit peer_8_LabelChanged();
-                    m_peer_8_connection_label_color = "#00FF00";
+                    m_peer_8_connection_label_color = mMainColor;
                     emit peer_8_LabelColorChanged();
               }
               if( nodeNumber == 9 ) {
                     connectAsClient(nodes.node_ip[nodeNumber], nodes.node_id[nodeNumber]);
                     m_peer_9_connection_label = true;
                     emit peer_9_LabelChanged();
-                    m_peer_9_connection_label_color = "#00FF00";
+                    m_peer_9_connection_label_color = mMainColor;
                     emit peer_9_LabelColorChanged();
               }
           }
@@ -2508,7 +2563,7 @@ void engineClass::getWifiStatus()
     emit wifiStatusTextChanged();
 
     if ( result.contains( "connected",Qt::CaseInsensitive ) ) {
-        m_wifiNotifyColor = "#00FF00";
+        m_wifiNotifyColor = mMainColor;
         emit wifiNotifyColorChanged();
     }
 }
@@ -2601,6 +2656,51 @@ void engineClass::changeLteEnabled(bool newLteEnabled)
 
     setLteEnabled(newLteEnabled);
 }
+
+/* Night mode */
+bool engineClass::nightModeEnabled() const
+{
+    return m_nightModeEnabled;
+}
+
+void engineClass::setNightModeEnabled(bool newNightModeEnabled)
+{
+    if (m_nightModeEnabled == newNightModeEnabled)
+        return;
+    m_nightModeEnabled = newNightModeEnabled;
+    emit nightModeEnabledChanged();
+    QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
+    settings.setValue("nightmode", m_nightModeEnabled);
+}
+
+void engineClass::changeNightModeEnabled(bool newNightModeEnabled)
+{
+    if ( newNightModeEnabled ) {
+                                    //  625 nm      green           640 m
+        mMainColor = "#ff2100";     //  #ff6300     #00FF00         ff2100
+        emit mainColorChanged();
+        mHighColor = "#ff8080";     //  #ffa300     lightgreen      ff6100
+        emit highColorChanged();
+        mDimColor = "#cc2100";      //  #dd5300                     cc2100
+        emit dimColorChanged();
+        m_wifiNotifyColor = mMainColor;
+        emit wifiNotifyColorChanged();
+    }
+    else {
+                                    //  625 nm      green           640 m
+        mMainColor = "#00FF00";     //  #ff6300     #00FF00         ff2100
+        emit mainColorChanged();
+        mHighColor = "lightgreen";  //  #ffa300     lightgreen      ff6100
+        emit highColorChanged();
+        mDimColor = "#21cc00";      //  #dd5300                     cc2100
+        emit dimColorChanged();
+        m_wifiNotifyColor = mMainColor;
+        emit wifiNotifyColorChanged();
+    }
+    setNightModeEnabled(newNightModeEnabled);
+}
+
+
 
 QString engineClass::getPlmn() {
     return mPlmn;

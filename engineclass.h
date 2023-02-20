@@ -24,6 +24,7 @@
 #include <QTimer>
 #include <QSocketNotifier>
 #include <QProcess>
+#include <QQmlPropertyMap>
 
 #define PEER_COUNT  10
 #define NODECOUNT   10
@@ -33,9 +34,13 @@
 #define MESSAGE_RECEIVE_FIFO    "/tmp/message_fifo_out"
 #define DEVICE_LOCK_TIME        60
 
+
 class engineClass : public QObject
 {
     Q_OBJECT
+
+
+
     //                               c++ returns private variable:
     //                               return m_peerCallSign[0];
     //                               |
@@ -146,7 +151,9 @@ class engineClass : public QObject
     // About text & deep sleep
     Q_PROPERTY(QString aboutTextContent READ getAboutTextContent() NOTIFY aboutTextContentChanged);
     Q_PROPERTY(bool deepSleepEnabled READ deepSleepEnabled WRITE setDeepSleepEnabled NOTIFY deepSleepEnabledChanged);
+
     Q_PROPERTY(bool lteEnabled READ lteEnabled WRITE setLteEnabled NOTIFY lteEnabledChanged)
+    Q_PROPERTY(bool nightModeEnabled READ nightModeEnabled WRITE setNightModeEnabled NOTIFY nightModeEnabledChanged)
 
     Q_PROPERTY(bool powerOffDialogVisible READ getPowerOffVisible() NOTIFY powerOffVisibleChanged);
 
@@ -160,6 +167,11 @@ class engineClass : public QObject
     Q_PROPERTY(QString rsrq READ getRsrq NOTIFY rsrqChanged)
     Q_PROPERTY(QString rsrp READ getRsrp NOTIFY rsrpChanged)
     Q_PROPERTY(QString snr READ getSnr NOTIFY snrChanged)
+
+    // Color
+    Q_PROPERTY(QString mainColor READ getMainColor NOTIFY mainColorChanged)
+    Q_PROPERTY(QString highColor READ getHighColor NOTIFY highColorChanged)
+    Q_PROPERTY(QString dimColor READ getDimColor NOTIFY dimColorChanged)
 
 
 public:
@@ -289,6 +301,7 @@ public:
     Q_INVOKABLE QString getAboutTextContent();
     Q_INVOKABLE void getWifiStatus();
     Q_INVOKABLE void registerTouch();
+
     bool deepSleepEnabled() const;
     void setDeepSleepEnabled(bool newDeepSleepEnabled);
     Q_INVOKABLE void changeDeepSleepEnabled(bool newDeepSleepEnabled);
@@ -296,6 +309,11 @@ public:
     bool lteEnabled() const;
     void setLteEnabled(bool newLteEnabled);
     Q_INVOKABLE void changeLteEnabled(bool newLteEnabled);
+
+    bool nightModeEnabled() const;
+    void setNightModeEnabled(bool newNightModeEnabled);
+    Q_INVOKABLE void changeNightModeEnabled(bool newNightModeEnabled);
+
     Q_INVOKABLE QString getPlmn();
     Q_INVOKABLE QString getTa();
     Q_INVOKABLE QString getGc();
@@ -308,7 +326,13 @@ public:
     Q_INVOKABLE bool getPowerOffVisible();
     Q_INVOKABLE void closePowerOffDialog();
     Q_INVOKABLE void setSwipeIndex(int index);
+
     Q_INVOKABLE QString appVersion();
+    Q_INVOKABLE QString getMainColor();
+    Q_INVOKABLE QString getHighColor();
+    Q_INVOKABLE QString getDimColor();
+
+
 
 /*
     Q_PROPERTY(QString plmn READ getPlmn NOTIFY plmnChanged)
@@ -468,6 +492,7 @@ private:
     void saveUserPreferences();
     bool m_deepSleepEnabled=false;
     bool m_lteEnabled=false;
+    bool m_nightModeEnabled=false;
 
     QString mPlmn;
     QString mTa;
@@ -484,6 +509,11 @@ private:
     bool mPowerOffDialog=false;
     QTimer *proximityTimer;
     int mBacklightLevel=50;
+    QString mMainColor;
+    QString mHighColor;
+    QString mDimColor;
+
+
 
 public slots:
     void initEngine();
@@ -633,6 +663,10 @@ signals:
     void rsrpChanged();
     void snrChanged();
     void powerOffVisibleChanged();
+    void mainColorChanged();
+    void highColorChanged();
+    void dimColorChanged();
+    void nightModeEnabledChanged();
 
 
 };
