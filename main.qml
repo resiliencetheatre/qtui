@@ -524,6 +524,22 @@ ApplicationWindow {
         }
     }
 
+    // Nuke counter
+    Rectangle {
+        id: nukeCounter
+        anchors.fill: parent
+        color: "transparent"
+        radius: 0
+        visible: eClass.nukeCounterVisible
+        Text {
+            text: eClass.nukeCounterText
+            color: "red"
+            font.pointSize: 130
+            font.bold: true
+            anchors.centerIn: parent
+        }
+    }
+
     // Input panel
     InputPanel {
         id: inputPanel

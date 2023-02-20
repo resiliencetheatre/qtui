@@ -32,7 +32,7 @@
 #define TELEMETRY_FIFO_IN       "/tmp/telemetry_fifo_in"
 #define TELEMETRY_FIFO_OUT      "/tmp/telemetry_fifo_out"
 #define MESSAGE_RECEIVE_FIFO    "/tmp/message_fifo_out"
-#define DEVICE_LOCK_TIME        60
+#define DEVICE_LOCK_TIME        120
 
 
 class engineClass : public QObject
@@ -104,7 +104,6 @@ class engineClass : public QObject
 
     Q_PROPERTY(bool goSecureButton_active READ getGoSecureButton_active() NOTIFY goSecureButton_activeChanged);
     Q_PROPERTY(bool callDialogVisible READ getCallDialogVisible() NOTIFY callDialogVisibleChanged);
-
     Q_PROPERTY(QString statusMessage READ getStatusMessage() NOTIFY statusMessageChanged);
     Q_PROPERTY(QString myCallSign READ getMyCallSign() NOTIFY myCallSignChanged);
     Q_PROPERTY(QString callSignInsigniaImage READ getCallSignInsigniaImage() NOTIFY callSignInsigniaImageChanged);
@@ -112,7 +111,6 @@ class engineClass : public QObject
     Q_PROPERTY(QString insigniaLabelStateText READ getInsigniaLabelStateText() NOTIFY insigniaLabelStateTextChanged);
     Q_PROPERTY(QString textMsgDisplay READ getTextMsgDisplay() NOTIFY textMsgDisplayChanged);
     Q_PROPERTY(int swipeViewIndex READ getSwipeViewIndex() NOTIFY swipeViewIndexChanged);
-
     Q_PROPERTY(QString voltageValue READ getVoltageValue() NOTIFY voltageValueChanged);
     Q_PROPERTY(QString voltageNotifyColor READ getVoltageNotifyColor() NOTIFY voltageNotifyColorChanged);
     Q_PROPERTY(QString networkStatusLabelValue READ getNetworkStatusLabel() NOTIFY networkStatusLabelChanged);
@@ -124,7 +122,6 @@ class engineClass : public QObject
     Q_PROPERTY(QString vaultScreenNotifyText READ getVaultScreenNotifyText() NOTIFY vaultScreenNotifyTextChanged);
     Q_PROPERTY(QString vaultScreenNotifyColor READ getVaultScreenNotifyColor() NOTIFY vaultScreenNotifyColorChanged);
     Q_PROPERTY(QString vaultScreenNotifyTextColor READ getVaultScreenNotifyTextColor() NOTIFY vaultScreenNotifyTextColorChanged);
-
     // Key percentage
     Q_PROPERTY(QString peer_0_keyPercentage READ getPeer_0_keyPercentage() NOTIFY peer_0_keyPercentageChanged);
     Q_PROPERTY(QString peer_1_keyPercentage READ getPeer_1_keyPercentage() NOTIFY peer_1_keyPercentageChanged);
@@ -136,14 +133,10 @@ class engineClass : public QObject
     Q_PROPERTY(QString peer_7_keyPercentage READ getPeer_7_keyPercentage() NOTIFY peer_7_keyPercentageChanged);
     Q_PROPERTY(QString peer_8_keyPercentage READ getPeer_8_keyPercentage() NOTIFY peer_8_keyPercentageChanged);
     Q_PROPERTY(QString peer_9_keyPercentage READ getPeer_9_keyPercentage() NOTIFY peer_9_keyPercentageChanged);
-
-    // pin code
+    // Pin code
     Q_PROPERTY(QString lockScreenPinCode READ getLockScreenPinCode() NOTIFY lockScreenPinCodeChanged);
-
-    // wifi status
+    // Wifi
     Q_PROPERTY(QString wifiStatusText READ getWifiStatusText() NOTIFY wifiStatusTextChanged);
-
-    // wifi m_wifiNetworks
     Q_PROPERTY(QStringList wifiNetworks READ getWifiNetworks() NOTIFY wifiNetworksChanged);
     // Wifi notify on top bar
     Q_PROPERTY(QString wifiNotifyText READ getWifiNotifyText() NOTIFY wifiNotifyTextChanged);
@@ -151,12 +144,9 @@ class engineClass : public QObject
     // About text & deep sleep
     Q_PROPERTY(QString aboutTextContent READ getAboutTextContent() NOTIFY aboutTextContentChanged);
     Q_PROPERTY(bool deepSleepEnabled READ deepSleepEnabled WRITE setDeepSleepEnabled NOTIFY deepSleepEnabledChanged);
-
     Q_PROPERTY(bool lteEnabled READ lteEnabled WRITE setLteEnabled NOTIFY lteEnabledChanged)
     Q_PROPERTY(bool nightModeEnabled READ nightModeEnabled WRITE setNightModeEnabled NOTIFY nightModeEnabledChanged)
-
     Q_PROPERTY(bool powerOffDialogVisible READ getPowerOffVisible() NOTIFY powerOffVisibleChanged);
-
     // Cellular info
     Q_PROPERTY(QString plmn READ getPlmn NOTIFY plmnChanged)
     Q_PROPERTY(QString ta READ getTa NOTIFY taChanged)
@@ -167,11 +157,13 @@ class engineClass : public QObject
     Q_PROPERTY(QString rsrq READ getRsrq NOTIFY rsrqChanged)
     Q_PROPERTY(QString rsrp READ getRsrp NOTIFY rsrpChanged)
     Q_PROPERTY(QString snr READ getSnr NOTIFY snrChanged)
-
     // Color
     Q_PROPERTY(QString mainColor READ getMainColor NOTIFY mainColorChanged)
     Q_PROPERTY(QString highColor READ getHighColor NOTIFY highColorChanged)
     Q_PROPERTY(QString dimColor READ getDimColor NOTIFY dimColorChanged)
+    // Nuke counter
+    Q_PROPERTY(bool nukeCounterVisible READ getNukeCounterVisible NOTIFY nukeCounterVisibleChanged)
+    Q_PROPERTY(QString nukeCounterText READ getNukeCounterText NOTIFY nukeCounterTextChanged)
 
 
 public:
@@ -331,7 +323,8 @@ public:
     Q_INVOKABLE QString getMainColor();
     Q_INVOKABLE QString getHighColor();
     Q_INVOKABLE QString getDimColor();
-
+    Q_INVOKABLE bool getNukeCounterVisible();
+    Q_INVOKABLE QString getNukeCounterText();
 
 
 /*
@@ -515,6 +508,12 @@ private:
     QString mMessageColorLocal;
     QString mMessageColorRemote;
     bool mAudioDeviceBusy;
+    bool mNukeCounterVisible;
+    QString mNukeCounterText;
+    bool mVolUpKeyReleased=false;
+    bool mNukeTimerRunning=false;
+    QTimer *nukeCountDownTimer;
+    int nukeCountDownValue;
 
 
 
@@ -559,6 +558,8 @@ private slots:
     void getKnownWifiNetworks();
     void loadAboutText();
     void proximityTimerTick();
+    void readNukeTimer();
+    void countNukeTimer();
 
 signals:
     void peer_0_NameChanged(); // emit this on m_peerCallSign change
@@ -670,7 +671,8 @@ signals:
     void highColorChanged();
     void dimColorChanged();
     void nightModeEnabledChanged();
-
+    void nukeCounterVisibleChanged();
+    void nukeCounterTextChanged();
 
 };
 

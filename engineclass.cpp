@@ -129,6 +129,9 @@ engineClass::engineClass(QObject *parent)
     /* Load about text content */
     loadAboutText();
     mAudioDeviceBusy = false;
+    /* No nuke */
+    mNukeCounterVisible = false;
+    emit nukeCounterVisibleChanged();
 
 }
 
@@ -150,6 +153,16 @@ QString engineClass::getHighColor()
 QString engineClass::getDimColor()
 {
     return mDimColor;
+}
+
+bool engineClass::getNukeCounterVisible()
+{
+    return mNukeCounterVisible;
+}
+
+QString engineClass::getNukeCounterText()
+{
+    return mNukeCounterText;
 }
 
 void engineClass::runExternalCmd(QString command, QStringList parameters){
@@ -250,26 +263,63 @@ void engineClass::readPwrGpioButton()
         }
         if (KEY_POWER == in_ev.code && in_ev.value == 0 ) {
             mPwrButtonReleased = true;
-
-                runExternalCmd("/bin/pptk-led", {"set", "red", "0"});
-                if ( m_deviceLocked == false && !mPowerOffDialog ) {
-                    lockDevice(LOCK_DEVICE);
-                } else
-                {
-                    lockDevice(UNLOCK_DEVICE);
-                }
+            runExternalCmd("/bin/pptk-led", {"set", "red", "0"});
+            if ( m_deviceLocked == false && !mPowerOffDialog ) {
+                lockDevice(LOCK_DEVICE);
+            } else
+            {
+                lockDevice(UNLOCK_DEVICE);
+            }
             break;
         }
     }
     }
 }
 
+/* Nuke down counter as long as Volume UP button is pressed down */
+void engineClass::countNukeTimer()
+{
+    mNukeCounterText = QString::number(nukeCountDownValue);
+    mNukeCounterVisible = true;
+    emit nukeCounterTextChanged();
+    emit nukeCounterVisibleChanged();
+    runExternalCmd("/bin/pptk-vibrate", {"400","10","1"});
+    if ( nukeCountDownValue > 0 ) {
+        nukeCountDownValue--;
+    }
+    /* TODO: When nukeCountDownValue == 0 do actual nuke */
+    /* Abort nuke counter if volume up is released */
+    if ( mVolUpKeyReleased == true ) {
+        nukeCountDownTimer->stop();
+        mNukeCounterVisible = false;
+        emit nukeCounterVisibleChanged();
+    }
+}
+
+/* pre-timer for nuke down counting */
+void engineClass::readNukeTimer()
+{
+    if ( mVolUpKeyReleased  == false ) {
+        if ( mNukeTimerRunning ) {
+            mNukeTimerRunning = false;
+            runExternalCmd("/bin/pptk-backlight", {"set_percent", "50"});
+            nukeCountDownValue = 10;
+            nukeCountDownTimer = new QTimer();
+            connect(nukeCountDownTimer, &QTimer::timeout, this, QOverload<>::of(&engineClass::countNukeTimer));
+            nukeCountDownTimer->start(1000);
+        }
+    }
+    mNukeTimerRunning=false;
+}
+
 /* Volume up/down:
     * On settings page adjusts backlight
-    * Other pages, adjusts volume */
+    * Other pages, adjusts volume
+    * 5 s press on volume up activates nuke timer */
 void engineClass::readVolGpioButton()
 {
     struct input_event in_ev = { 0 };
+
     /*  Loop read data  */
     if (sizeof(struct input_event) != read(m_volButtonFileHandle, &in_ev, sizeof(struct input_event))) {
         perror("read error");
@@ -278,7 +328,9 @@ void engineClass::readVolGpioButton()
     switch (in_ev.type) {
     case EV_KEY:
     {
+        /* Volume Down button */
         if (KEY_VOLUMEDOWN == in_ev.code && in_ev.value == 1 ) {
+            // Brightness
             if ( m_SwipeViewIndex == 2 ) {
                 if ( mBacklightLevel >= 20 && mBacklightLevel <= 90 ) {
                     registerTouch();
@@ -286,6 +338,7 @@ void engineClass::readVolGpioButton()
                     mBacklightLevel = mBacklightLevel - 10;
                 }
             } else {
+                /* Volume */
                 if ( m_SpeakerVolumeRuntimeValue > 0 && m_SpeakerVolumeRuntimeValue <= 100 )
                 {
                     m_SpeakerVolumeRuntimeValue = m_SpeakerVolumeRuntimeValue - 5;
@@ -298,7 +351,15 @@ void engineClass::readVolGpioButton()
             }
         }
 
+        /* Volume Up button => Down */
         if (KEY_VOLUMEUP == in_ev.code && in_ev.value == 1 ) {
+            /* Start pre-timer  */
+            mVolUpKeyReleased = false;
+            if ( !mNukeTimerRunning) {
+                QTimer::singleShot(5 * 1000, this, SLOT(readNukeTimer()));
+                mNukeTimerRunning = true;
+            }
+            /* Brightness */
             if ( m_SwipeViewIndex == 2 ) {
                 if ( mBacklightLevel >= 10 && mBacklightLevel <= 80 ) {
                     registerTouch();
@@ -306,6 +367,7 @@ void engineClass::readVolGpioButton()
                     runExternalCmd("/bin/pptk-backlight", {"set_percent", QString::number(mBacklightLevel)});
                 }
             } else {
+                /* Volume */
                 if ( m_SpeakerVolumeRuntimeValue >= 0 && m_SpeakerVolumeRuntimeValue < 100 )
                 {
                     m_SpeakerVolumeRuntimeValue = m_SpeakerVolumeRuntimeValue + 5;
@@ -316,6 +378,10 @@ void engineClass::readVolGpioButton()
                 saveUserPreferences();
                 break;
             }
+        }
+        /* Volume Up key => Up */
+        if ( KEY_VOLUMEUP == in_ev.code && in_ev.value == 0  ) {
+            mVolUpKeyReleased = true;
         }
     }
     }
