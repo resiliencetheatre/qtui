@@ -17,7 +17,7 @@ RESOURCES += qml.qrc
 # Additional import path used to resolve QML modules just for Qt Quick Designer
 # QML_DESIGNER_IMPORT_PATH =
 
-VERSION = v0.5_gh
+VERSION = v0.51_gh
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
 CONFIG += qml_debug
