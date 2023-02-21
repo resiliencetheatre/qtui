@@ -36,6 +36,9 @@
             https://academo.org/demos/wavelength-to-colour-relationship/
 
             This code is highly experimental.
+
+    [1] https://www.cablefree.net/wirelesstechnology/4glte/rsrp-rsrq-measurement-lte/
+    [2] http://manuel.reithuber.net/2013/01/interface-for-default-route-in-qt-on-linux/
 */
 
 #include "engineclass.h"
@@ -132,6 +135,8 @@ engineClass::engineClass(QObject *parent)
     /* No nuke */
     mNukeCounterVisible = false;
     emit nukeCounterVisibleChanged();
+
+
 
 }
 
@@ -294,6 +299,30 @@ void engineClass::countNukeTimer()
         mNukeCounterVisible = false;
         emit nukeCounterVisibleChanged();
     }
+}
+
+/* Get default route interface [2] */
+QString engineClass::getDefaultRoute()
+{
+    QFile routeFile("/proc/net/route");
+    QString rc;
+
+    if (!routeFile.open(QFile::ReadOnly))
+        qDebug() << "Error getting route information " << routeFile.errorString();
+
+    QByteArray line;
+    while (!(line = routeFile.readLine()).isNull()) {
+      QList<QByteArray> parts = line.split('\t');
+      QByteArray intf = parts[0];
+      QByteArray route = parts[1];
+      QByteArray mask = parts[7];
+      // Find make sure the destination address is 0.0.0.0 and the netmask empty
+      if (route == "00000000" && mask == "00000000") {
+        rc = intf;
+        break;
+      }
+    }
+    return rc;
 }
 
 /* pre-timer for nuke down counting */
@@ -665,11 +694,9 @@ void engineClass::proximityTimerTick()
             proxValueAvailable = true;
         }
     }
-    // Use Wifi symbol to debug proximity sensor
+
     if ( proxValueAvailable ) {
         if ( proxLine.toInt() > 400 ) {
-            m_wifiNotifyText = "WIFI*";
-            emit wifiNotifyTextChanged();
             // Swipe to front page & block touch
             m_SwipeViewIndex = 0;
             emit swipeViewIndexChanged();
@@ -678,12 +705,11 @@ void engineClass::proximityTimerTick()
 
         } else {
             // Unblock touch
-            m_wifiNotifyText = "WIFI";
-            emit wifiNotifyTextChanged();
             m_touchBlock_active=false;
             emit touchBlock_activeChanged();
         }
     }
+
 }
 
 void engineClass::envTimerTick()
@@ -704,28 +730,42 @@ Signal information
     RSRP - reference Signal Received Power
     SNR  - signal-to-noise ratio
 
-[1] https://www.cablefree.net/wirelesstechnology/4glte/rsrp-rsrq-measurement-lte/
-
 */
 
     if ( m_vaultModeActive ) {
         return;
     }
 
+    /* Get default route interface */
     if ( 1 ) {
+        mDefaultRouteInterface = getDefaultRoute();
+        if ( mDefaultRouteInterface.contains("wwan0") ) {
+            m_wifiNotifyText = "LTE";
+            m_wifiNotifyColor = mMainColor;
+            emit wifiNotifyTextChanged();
+            emit wifiNotifyColorChanged();
+        }
+        if ( mDefaultRouteInterface.contains("wlan0") ) {
+            m_wifiNotifyText = "WIFI";
+            m_wifiNotifyColor = mMainColor;
+            emit wifiNotifyTextChanged();
+            emit wifiNotifyColorChanged();
+        }
+    }
 
+    if ( 1 ) {
         /* Read voltage from ENV file as volts */
         QString filename="/tmp/env";
         QFile file(filename);
         if(!file.exists()){
-          qDebug() << "Error, no file: "<<filename;
+            qDebug() << "Error, no file: "<<filename;
         }
         QString line;
         if (file.open(QIODevice::ReadOnly | QIODevice::Text)){
-          QTextStream stream(&file);
-          while (!stream.atEnd()){
-              line = stream.readLine();
-          }
+            QTextStream stream(&file);
+            while (!stream.atEnd()){
+                line = stream.readLine();
+            }
         }
         file.close();
 
@@ -735,16 +775,16 @@ Signal information
         emit voltageValueChanged();
         float voltageCompareValue = elements[0].toFloat();
         if ( voltageCompareValue < 3.7 && voltageCompareValue > 3.6 ) {
-           mvoltageNotifyColor = "#FFFF00";
-           emit voltageNotifyColorChanged();
+            mvoltageNotifyColor = "#FFFF00";
+            emit voltageNotifyColorChanged();
         }
         if (voltageCompareValue > 3.7) {
-           mvoltageNotifyColor = mMainColor;
-           emit voltageNotifyColorChanged();
+            mvoltageNotifyColor = mMainColor;
+            emit voltageNotifyColorChanged();
         }
         if (voltageCompareValue < 3.6) {
-           mvoltageNotifyColor = "#FF5555";
-           emit voltageNotifyColorChanged();
+            mvoltageNotifyColor = "#FF5555";
+            emit voltageNotifyColorChanged();
         }
         /* Parse cellular environment if we have it */
         mPlmn = elements[1];
@@ -779,21 +819,21 @@ Signal information
         }
         batStatusFile.close();
         if ( batStatus.contains( "Charging",Qt::CaseInsensitive ) ) {
-             chargeStatusText = "↗";
+            chargeStatusText = "↗";
         }
         if ( batStatus.contains( "Discharging",Qt::CaseInsensitive ) ) {
-             chargeStatusText = "↘";
+            chargeStatusText = "↘";
         }
         // Capacity
         QFile file(BATTERY_CAPACITY_PATH);
         if(!file.exists()){
-          mVoltage = "ERR";
-          emit voltageValueChanged();
+            mVoltage = "ERR";
+            emit voltageValueChanged();
         }
         QString line;
         if (file.open(QIODevice::ReadOnly | QIODevice::Text)){
-          QTextStream stream(&file);
-          line = stream.readLine();
+            QTextStream stream(&file);
+            line = stream.readLine();
         }
         file.close();
         mVoltage = "" + line + " % " + chargeStatusText;
@@ -801,32 +841,32 @@ Signal information
         int voltCompare = line.toInt();
         // Green > 20 %
         if ( voltCompare > 20 ) {
-           mvoltageNotifyColor = mMainColor;
-           emit voltageNotifyColorChanged();
+            mvoltageNotifyColor = mMainColor;
+            emit voltageNotifyColorChanged();
         }
         // Yellow 10 - 20 %
         if ( voltCompare >= 10 && voltCompare <= 20 ) {
-           mvoltageNotifyColor = "#FFFF00";
-           emit voltageNotifyColorChanged();
+            mvoltageNotifyColor = "#FFFF00";
+            emit voltageNotifyColorChanged();
         }
         // Red < 10 %
         if ( voltCompare < 10 ) {
-           mvoltageNotifyColor = "#FF5555";
-           emit voltageNotifyColorChanged();
+            mvoltageNotifyColor = "#FF5555";
+            emit voltageNotifyColorChanged();
         }
     }
 
     QString networkStatusFile="/tmp/network";
     QFile networkFile(networkStatusFile);
     if(!networkFile.exists()){
-      qDebug() << "Error, no file: " << networkStatusFile;
+        qDebug() << "Error, no file: " << networkStatusFile;
     }
     QString networkMeasurementValues;
     if (networkFile.open(QIODevice::ReadOnly | QIODevice::Text)){
-      QTextStream stream(&networkFile);
-      while (!stream.atEnd()){
-          networkMeasurementValues = stream.readLine();
-      }
+        QTextStream stream(&networkFile);
+        while (!stream.atEnd()){
+            networkMeasurementValues = stream.readLine();
+        }
     }
     networkFile.close();
 

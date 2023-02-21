@@ -514,6 +514,7 @@ private:
     bool mNukeTimerRunning=false;
     QTimer *nukeCountDownTimer;
     int nukeCountDownValue;
+    QString mDefaultRouteInterface;
 
 
 
@@ -560,6 +561,7 @@ private slots:
     void proximityTimerTick();
     void readNukeTimer();
     void countNukeTimer();
+    QString getDefaultRoute();
 
 signals:
     void peer_0_NameChanged(); // emit this on m_peerCallSign change
@@ -673,6 +675,8 @@ signals:
     void nightModeEnabledChanged();
     void nukeCounterVisibleChanged();
     void nukeCounterTextChanged();
+
+
 
 };
 
