@@ -47,106 +47,106 @@ class engineClass : public QObject
     //                 QML:          |                    c++ emit this signal if m_peerCallSign is updated
     //                 text: eClass.peerName              |
     //                 |             |                    |
-    Q_PROPERTY(QString peer_0_Name READ getPeer_0_Name() NOTIFY peer_0_NameChanged);
-    Q_PROPERTY(QString peer_1_Name READ getPeer_1_Name() NOTIFY peer_1_NameChanged);
-    Q_PROPERTY(QString peer_2_Name READ getPeer_2_Name() NOTIFY peer_2_NameChanged);
-    Q_PROPERTY(QString peer_3_Name READ getPeer_3_Name() NOTIFY peer_3_NameChanged);
-    Q_PROPERTY(QString peer_4_Name READ getPeer_4_Name() NOTIFY peer_4_NameChanged);
-    Q_PROPERTY(QString peer_5_Name READ getPeer_5_Name() NOTIFY peer_5_NameChanged);
-    Q_PROPERTY(QString peer_6_Name READ getPeer_6_Name() NOTIFY peer_6_NameChanged);
-    Q_PROPERTY(QString peer_7_Name READ getPeer_7_Name() NOTIFY peer_7_NameChanged);
-    Q_PROPERTY(QString peer_8_Name READ getPeer_8_Name() NOTIFY peer_8_NameChanged);
-    Q_PROPERTY(QString peer_9_Name READ getPeer_9_Name() NOTIFY peer_9_NameChanged);
+    Q_PROPERTY(QString peer_0_Name READ getPeer_0_Name() NOTIFY peer_0_NameChanged)
+    Q_PROPERTY(QString peer_1_Name READ getPeer_1_Name() NOTIFY peer_1_NameChanged)
+    Q_PROPERTY(QString peer_2_Name READ getPeer_2_Name() NOTIFY peer_2_NameChanged)
+    Q_PROPERTY(QString peer_3_Name READ getPeer_3_Name() NOTIFY peer_3_NameChanged)
+    Q_PROPERTY(QString peer_4_Name READ getPeer_4_Name() NOTIFY peer_4_NameChanged)
+    Q_PROPERTY(QString peer_5_Name READ getPeer_5_Name() NOTIFY peer_5_NameChanged)
+    Q_PROPERTY(QString peer_6_Name READ getPeer_6_Name() NOTIFY peer_6_NameChanged)
+    Q_PROPERTY(QString peer_7_Name READ getPeer_7_Name() NOTIFY peer_7_NameChanged)
+    Q_PROPERTY(QString peer_8_Name READ getPeer_8_Name() NOTIFY peer_8_NameChanged)
+    Q_PROPERTY(QString peer_9_Name READ getPeer_9_Name() NOTIFY peer_9_NameChanged)
 
-    Q_PROPERTY(QString peer_0_NameColor READ getPeer_0_NameColor() NOTIFY peer_0_NameColorChanged);
-    Q_PROPERTY(QString peer_1_NameColor READ getPeer_1_NameColor() NOTIFY peer_1_NameColorChanged);
-    Q_PROPERTY(QString peer_2_NameColor READ getPeer_2_NameColor() NOTIFY peer_2_NameColorChanged);
-    Q_PROPERTY(QString peer_3_NameColor READ getPeer_3_NameColor() NOTIFY peer_3_NameColorChanged);
-    Q_PROPERTY(QString peer_4_NameColor READ getPeer_4_NameColor() NOTIFY peer_4_NameColorChanged);
-    Q_PROPERTY(QString peer_5_NameColor READ getPeer_5_NameColor() NOTIFY peer_5_NameColorChanged);
-    Q_PROPERTY(QString peer_6_NameColor READ getPeer_6_NameColor() NOTIFY peer_6_NameColorChanged);
-    Q_PROPERTY(QString peer_7_NameColor READ getPeer_7_NameColor() NOTIFY peer_7_NameColorChanged);
-    Q_PROPERTY(QString peer_8_NameColor READ getPeer_8_NameColor() NOTIFY peer_8_NameColorChanged);
-    Q_PROPERTY(QString peer_9_NameColor READ getPeer_9_NameColor() NOTIFY peer_9_NameColorChanged);
+    Q_PROPERTY(QString peer_0_NameColor READ getPeer_0_NameColor() NOTIFY peer_0_NameColorChanged)
+    Q_PROPERTY(QString peer_1_NameColor READ getPeer_1_NameColor() NOTIFY peer_1_NameColorChanged)
+    Q_PROPERTY(QString peer_2_NameColor READ getPeer_2_NameColor() NOTIFY peer_2_NameColorChanged)
+    Q_PROPERTY(QString peer_3_NameColor READ getPeer_3_NameColor() NOTIFY peer_3_NameColorChanged)
+    Q_PROPERTY(QString peer_4_NameColor READ getPeer_4_NameColor() NOTIFY peer_4_NameColorChanged)
+    Q_PROPERTY(QString peer_5_NameColor READ getPeer_5_NameColor() NOTIFY peer_5_NameColorChanged)
+    Q_PROPERTY(QString peer_6_NameColor READ getPeer_6_NameColor() NOTIFY peer_6_NameColorChanged)
+    Q_PROPERTY(QString peer_7_NameColor READ getPeer_7_NameColor() NOTIFY peer_7_NameColorChanged)
+    Q_PROPERTY(QString peer_8_NameColor READ getPeer_8_NameColor() NOTIFY peer_8_NameColorChanged)
+    Q_PROPERTY(QString peer_9_NameColor READ getPeer_9_NameColor() NOTIFY peer_9_NameColorChanged)
 
-    Q_PROPERTY(bool peer_0_label READ getPeer_0_Label() NOTIFY peer_0_LabelChanged);
-    Q_PROPERTY(bool peer_1_label READ getPeer_1_Label() NOTIFY peer_1_LabelChanged);
-    Q_PROPERTY(bool peer_2_label READ getPeer_2_Label() NOTIFY peer_2_LabelChanged);
-    Q_PROPERTY(bool peer_3_label READ getPeer_3_Label() NOTIFY peer_3_LabelChanged);
-    Q_PROPERTY(bool peer_4_label READ getPeer_4_Label() NOTIFY peer_4_LabelChanged);
-    Q_PROPERTY(bool peer_5_label READ getPeer_5_Label() NOTIFY peer_5_LabelChanged);
-    Q_PROPERTY(bool peer_6_label READ getPeer_6_Label() NOTIFY peer_6_LabelChanged);
-    Q_PROPERTY(bool peer_7_label READ getPeer_7_Label() NOTIFY peer_7_LabelChanged);
-    Q_PROPERTY(bool peer_8_label READ getPeer_8_Label() NOTIFY peer_8_LabelChanged);
-    Q_PROPERTY(bool peer_9_label READ getPeer_9_Label() NOTIFY peer_9_LabelChanged);
+    Q_PROPERTY(bool peer_0_label READ getPeer_0_Label() NOTIFY peer_0_LabelChanged)
+    Q_PROPERTY(bool peer_1_label READ getPeer_1_Label() NOTIFY peer_1_LabelChanged)
+    Q_PROPERTY(bool peer_2_label READ getPeer_2_Label() NOTIFY peer_2_LabelChanged)
+    Q_PROPERTY(bool peer_3_label READ getPeer_3_Label() NOTIFY peer_3_LabelChanged)
+    Q_PROPERTY(bool peer_4_label READ getPeer_4_Label() NOTIFY peer_4_LabelChanged)
+    Q_PROPERTY(bool peer_5_label READ getPeer_5_Label() NOTIFY peer_5_LabelChanged)
+    Q_PROPERTY(bool peer_6_label READ getPeer_6_Label() NOTIFY peer_6_LabelChanged)
+    Q_PROPERTY(bool peer_7_label READ getPeer_7_Label() NOTIFY peer_7_LabelChanged)
+    Q_PROPERTY(bool peer_8_label READ getPeer_8_Label() NOTIFY peer_8_LabelChanged)
+    Q_PROPERTY(bool peer_9_label READ getPeer_9_Label() NOTIFY peer_9_LabelChanged)
 
-    Q_PROPERTY(QString peer_0_label_color READ getPeer_0_Label_color() NOTIFY peer_0_LabelColorChanged);
-    Q_PROPERTY(QString peer_1_label_color READ getPeer_1_Label_color() NOTIFY peer_1_LabelColorChanged);
-    Q_PROPERTY(QString peer_2_label_color READ getPeer_2_Label_color() NOTIFY peer_2_LabelColorChanged);
-    Q_PROPERTY(QString peer_3_label_color READ getPeer_3_Label_color() NOTIFY peer_3_LabelColorChanged);
-    Q_PROPERTY(QString peer_4_label_color READ getPeer_4_Label_color() NOTIFY peer_4_LabelColorChanged);
-    Q_PROPERTY(QString peer_5_label_color READ getPeer_5_Label_color() NOTIFY peer_5_LabelColorChanged);
-    Q_PROPERTY(QString peer_6_label_color READ getPeer_6_Label_color() NOTIFY peer_6_LabelColorChanged);
-    Q_PROPERTY(QString peer_7_label_color READ getPeer_7_Label_color() NOTIFY peer_7_LabelColorChanged);
-    Q_PROPERTY(QString peer_8_label_color READ getPeer_8_Label_color() NOTIFY peer_8_LabelColorChanged);
-    Q_PROPERTY(QString peer_9_label_color READ getPeer_9_Label_color() NOTIFY peer_9_LabelColorChanged);
+    Q_PROPERTY(QString peer_0_label_color READ getPeer_0_Label_color() NOTIFY peer_0_LabelColorChanged)
+    Q_PROPERTY(QString peer_1_label_color READ getPeer_1_Label_color() NOTIFY peer_1_LabelColorChanged)
+    Q_PROPERTY(QString peer_2_label_color READ getPeer_2_Label_color() NOTIFY peer_2_LabelColorChanged)
+    Q_PROPERTY(QString peer_3_label_color READ getPeer_3_Label_color() NOTIFY peer_3_LabelColorChanged)
+    Q_PROPERTY(QString peer_4_label_color READ getPeer_4_Label_color() NOTIFY peer_4_LabelColorChanged)
+    Q_PROPERTY(QString peer_5_label_color READ getPeer_5_Label_color() NOTIFY peer_5_LabelColorChanged)
+    Q_PROPERTY(QString peer_6_label_color READ getPeer_6_Label_color() NOTIFY peer_6_LabelColorChanged)
+    Q_PROPERTY(QString peer_7_label_color READ getPeer_7_Label_color() NOTIFY peer_7_LabelColorChanged)
+    Q_PROPERTY(QString peer_8_label_color READ getPeer_8_Label_color() NOTIFY peer_8_LabelColorChanged)
+    Q_PROPERTY(QString peer_9_label_color READ getPeer_9_Label_color() NOTIFY peer_9_LabelColorChanged)
 
-    Q_PROPERTY(bool button_0_active READ getButton_0_active() NOTIFY button_0_activeChanged);
-    Q_PROPERTY(bool button_1_active READ getButton_1_active() NOTIFY button_1_activeChanged);
-    Q_PROPERTY(bool button_2_active READ getButton_2_active() NOTIFY button_2_activeChanged);
-    Q_PROPERTY(bool button_3_active READ getButton_3_active() NOTIFY button_3_activeChanged);
-    Q_PROPERTY(bool button_4_active READ getButton_4_active() NOTIFY button_4_activeChanged);
-    Q_PROPERTY(bool button_5_active READ getButton_5_active() NOTIFY button_5_activeChanged);
-    Q_PROPERTY(bool button_6_active READ getButton_6_active() NOTIFY button_6_activeChanged);
-    Q_PROPERTY(bool button_7_active READ getButton_7_active() NOTIFY button_7_activeChanged);
-    Q_PROPERTY(bool button_8_active READ getButton_8_active() NOTIFY button_8_activeChanged);
-    Q_PROPERTY(bool button_9_active READ getButton_9_active() NOTIFY button_9_activeChanged);
+    Q_PROPERTY(bool button_0_active READ getButton_0_active() NOTIFY button_0_activeChanged)
+    Q_PROPERTY(bool button_1_active READ getButton_1_active() NOTIFY button_1_activeChanged)
+    Q_PROPERTY(bool button_2_active READ getButton_2_active() NOTIFY button_2_activeChanged)
+    Q_PROPERTY(bool button_3_active READ getButton_3_active() NOTIFY button_3_activeChanged)
+    Q_PROPERTY(bool button_4_active READ getButton_4_active() NOTIFY button_4_activeChanged)
+    Q_PROPERTY(bool button_5_active READ getButton_5_active() NOTIFY button_5_activeChanged)
+    Q_PROPERTY(bool button_6_active READ getButton_6_active() NOTIFY button_6_activeChanged)
+    Q_PROPERTY(bool button_7_active READ getButton_7_active() NOTIFY button_7_activeChanged)
+    Q_PROPERTY(bool button_8_active READ getButton_8_active() NOTIFY button_8_activeChanged)
+    Q_PROPERTY(bool button_9_active READ getButton_9_active() NOTIFY button_9_activeChanged)
 
-    Q_PROPERTY(bool goSecureButton_active READ getGoSecureButton_active() NOTIFY goSecureButton_activeChanged);
-    Q_PROPERTY(bool callDialogVisible READ getCallDialogVisible() NOTIFY callDialogVisibleChanged);
-    Q_PROPERTY(QString statusMessage READ getStatusMessage() NOTIFY statusMessageChanged);
-    Q_PROPERTY(QString myCallSign READ getMyCallSign() NOTIFY myCallSignChanged);
-    Q_PROPERTY(QString callSignInsigniaImage READ getCallSignInsigniaImage() NOTIFY callSignInsigniaImageChanged);
-    Q_PROPERTY(QString insigniaLabelText READ getInsigniaLabelText() NOTIFY insigniaLabelTextChanged);
-    Q_PROPERTY(QString insigniaLabelStateText READ getInsigniaLabelStateText() NOTIFY insigniaLabelStateTextChanged);
-    Q_PROPERTY(QString textMsgDisplay READ getTextMsgDisplay() NOTIFY textMsgDisplayChanged);
-    Q_PROPERTY(int swipeViewIndex READ getSwipeViewIndex() NOTIFY swipeViewIndexChanged);
-    Q_PROPERTY(QString voltageValue READ getVoltageValue() NOTIFY voltageValueChanged);
-    Q_PROPERTY(QString voltageNotifyColor READ getVoltageNotifyColor() NOTIFY voltageNotifyColorChanged);
-    Q_PROPERTY(QString networkStatusLabelValue READ getNetworkStatusLabel() NOTIFY networkStatusLabelChanged);
-    Q_PROPERTY(QString networkStatusLabelColor READ getNetworkStatusLabelColor() NOTIFY networkStatusLabelColorChanged);
-    Q_PROPERTY(bool touchBlock_active READ getTouchBlock_active() NOTIFY touchBlock_activeChanged);
-    Q_PROPERTY(bool lockScreen_active READ getLockScreen_active() NOTIFY lockScreen_activeChanged);
-    Q_PROPERTY(bool camoScreen_active READ getCamoScreen_active() NOTIFY camoScreen_activeChanged);
-    Q_PROPERTY(bool vaultScreen_active READ getVaultScreen_active() NOTIFY vaultScreen_activeChanged);
-    Q_PROPERTY(QString vaultScreenNotifyText READ getVaultScreenNotifyText() NOTIFY vaultScreenNotifyTextChanged);
-    Q_PROPERTY(QString vaultScreenNotifyColor READ getVaultScreenNotifyColor() NOTIFY vaultScreenNotifyColorChanged);
-    Q_PROPERTY(QString vaultScreenNotifyTextColor READ getVaultScreenNotifyTextColor() NOTIFY vaultScreenNotifyTextColorChanged);
+    Q_PROPERTY(bool goSecureButton_active READ getGoSecureButton_active() NOTIFY goSecureButton_activeChanged)
+    Q_PROPERTY(bool callDialogVisible READ getCallDialogVisible() NOTIFY callDialogVisibleChanged)
+    Q_PROPERTY(QString statusMessage READ getStatusMessage() NOTIFY statusMessageChanged)
+    Q_PROPERTY(QString myCallSign READ getMyCallSign() NOTIFY myCallSignChanged)
+    Q_PROPERTY(QString callSignInsigniaImage READ getCallSignInsigniaImage() NOTIFY callSignInsigniaImageChanged)
+    Q_PROPERTY(QString insigniaLabelText READ getInsigniaLabelText() NOTIFY insigniaLabelTextChanged)
+    Q_PROPERTY(QString insigniaLabelStateText READ getInsigniaLabelStateText() NOTIFY insigniaLabelStateTextChanged)
+    Q_PROPERTY(QString textMsgDisplay READ getTextMsgDisplay() NOTIFY textMsgDisplayChanged)
+    Q_PROPERTY(int swipeViewIndex READ getSwipeViewIndex() NOTIFY swipeViewIndexChanged)
+    Q_PROPERTY(QString voltageValue READ getVoltageValue() NOTIFY voltageValueChanged)
+    Q_PROPERTY(QString voltageNotifyColor READ getVoltageNotifyColor() NOTIFY voltageNotifyColorChanged)
+    Q_PROPERTY(QString networkStatusLabelValue READ getNetworkStatusLabel() NOTIFY networkStatusLabelChanged)
+    Q_PROPERTY(QString networkStatusLabelColor READ getNetworkStatusLabelColor() NOTIFY networkStatusLabelColorChanged)
+    Q_PROPERTY(bool touchBlock_active READ getTouchBlock_active() NOTIFY touchBlock_activeChanged)
+    Q_PROPERTY(bool lockScreen_active READ getLockScreen_active() NOTIFY lockScreen_activeChanged)
+    Q_PROPERTY(bool camoScreen_active READ getCamoScreen_active() NOTIFY camoScreen_activeChanged)
+    Q_PROPERTY(bool vaultScreen_active READ getVaultScreen_active() NOTIFY vaultScreen_activeChanged)
+    Q_PROPERTY(QString vaultScreenNotifyText READ getVaultScreenNotifyText() NOTIFY vaultScreenNotifyTextChanged)
+    Q_PROPERTY(QString vaultScreenNotifyColor READ getVaultScreenNotifyColor() NOTIFY vaultScreenNotifyColorChanged)
+    Q_PROPERTY(QString vaultScreenNotifyTextColor READ getVaultScreenNotifyTextColor() NOTIFY vaultScreenNotifyTextColorChanged)
     // Key percentage
-    Q_PROPERTY(QString peer_0_keyPercentage READ getPeer_0_keyPercentage() NOTIFY peer_0_keyPercentageChanged);
-    Q_PROPERTY(QString peer_1_keyPercentage READ getPeer_1_keyPercentage() NOTIFY peer_1_keyPercentageChanged);
-    Q_PROPERTY(QString peer_2_keyPercentage READ getPeer_2_keyPercentage() NOTIFY peer_2_keyPercentageChanged);
-    Q_PROPERTY(QString peer_3_keyPercentage READ getPeer_3_keyPercentage() NOTIFY peer_3_keyPercentageChanged);
-    Q_PROPERTY(QString peer_4_keyPercentage READ getPeer_4_keyPercentage() NOTIFY peer_4_keyPercentageChanged);
-    Q_PROPERTY(QString peer_5_keyPercentage READ getPeer_5_keyPercentage() NOTIFY peer_5_keyPercentageChanged);
-    Q_PROPERTY(QString peer_6_keyPercentage READ getPeer_6_keyPercentage() NOTIFY peer_6_keyPercentageChanged);
-    Q_PROPERTY(QString peer_7_keyPercentage READ getPeer_7_keyPercentage() NOTIFY peer_7_keyPercentageChanged);
-    Q_PROPERTY(QString peer_8_keyPercentage READ getPeer_8_keyPercentage() NOTIFY peer_8_keyPercentageChanged);
-    Q_PROPERTY(QString peer_9_keyPercentage READ getPeer_9_keyPercentage() NOTIFY peer_9_keyPercentageChanged);
+    Q_PROPERTY(QString peer_0_keyPercentage READ getPeer_0_keyPercentage() NOTIFY peer_0_keyPercentageChanged)
+    Q_PROPERTY(QString peer_1_keyPercentage READ getPeer_1_keyPercentage() NOTIFY peer_1_keyPercentageChanged)
+    Q_PROPERTY(QString peer_2_keyPercentage READ getPeer_2_keyPercentage() NOTIFY peer_2_keyPercentageChanged)
+    Q_PROPERTY(QString peer_3_keyPercentage READ getPeer_3_keyPercentage() NOTIFY peer_3_keyPercentageChanged)
+    Q_PROPERTY(QString peer_4_keyPercentage READ getPeer_4_keyPercentage() NOTIFY peer_4_keyPercentageChanged)
+    Q_PROPERTY(QString peer_5_keyPercentage READ getPeer_5_keyPercentage() NOTIFY peer_5_keyPercentageChanged)
+    Q_PROPERTY(QString peer_6_keyPercentage READ getPeer_6_keyPercentage() NOTIFY peer_6_keyPercentageChanged)
+    Q_PROPERTY(QString peer_7_keyPercentage READ getPeer_7_keyPercentage() NOTIFY peer_7_keyPercentageChanged)
+    Q_PROPERTY(QString peer_8_keyPercentage READ getPeer_8_keyPercentage() NOTIFY peer_8_keyPercentageChanged)
+    Q_PROPERTY(QString peer_9_keyPercentage READ getPeer_9_keyPercentage() NOTIFY peer_9_keyPercentageChanged)
     // Pin code
-    Q_PROPERTY(QString lockScreenPinCode READ getLockScreenPinCode() NOTIFY lockScreenPinCodeChanged);
+    Q_PROPERTY(QString lockScreenPinCode READ getLockScreenPinCode() NOTIFY lockScreenPinCodeChanged)
     // Wifi
-    Q_PROPERTY(QString wifiStatusText READ getWifiStatusText() NOTIFY wifiStatusTextChanged);
-    Q_PROPERTY(QStringList wifiNetworks READ getWifiNetworks() NOTIFY wifiNetworksChanged);
+    Q_PROPERTY(QString wifiStatusText READ getWifiStatusText() NOTIFY wifiStatusTextChanged)
+    Q_PROPERTY(QStringList wifiNetworks READ getWifiNetworks() NOTIFY wifiNetworksChanged)
     // Wifi notify on top bar
-    Q_PROPERTY(QString wifiNotifyText READ getWifiNotifyText() NOTIFY wifiNotifyTextChanged);
-    Q_PROPERTY(QString wifiNotifyColor READ getWifiNotifyColor() NOTIFY wifiNotifyColorChanged);
+    Q_PROPERTY(QString wifiNotifyText READ getWifiNotifyText() NOTIFY wifiNotifyTextChanged)
+    Q_PROPERTY(QString wifiNotifyColor READ getWifiNotifyColor() NOTIFY wifiNotifyColorChanged)
     // About text & deep sleep
-    Q_PROPERTY(QString aboutTextContent READ getAboutTextContent() NOTIFY aboutTextContentChanged);
-    Q_PROPERTY(bool deepSleepEnabled READ deepSleepEnabled WRITE setDeepSleepEnabled NOTIFY deepSleepEnabledChanged);
+    Q_PROPERTY(QString aboutTextContent READ getAboutTextContent() NOTIFY aboutTextContentChanged)
+    Q_PROPERTY(bool deepSleepEnabled READ deepSleepEnabled WRITE setDeepSleepEnabled NOTIFY deepSleepEnabledChanged)
     Q_PROPERTY(bool lteEnabled READ lteEnabled WRITE setLteEnabled NOTIFY lteEnabledChanged)
     Q_PROPERTY(bool nightModeEnabled READ nightModeEnabled WRITE setNightModeEnabled NOTIFY nightModeEnabledChanged)
-    Q_PROPERTY(bool powerOffDialogVisible READ getPowerOffVisible() NOTIFY powerOffVisibleChanged);
+    Q_PROPERTY(bool powerOffDialogVisible READ getPowerOffVisible() NOTIFY powerOffVisibleChanged)
     // Cellular info
     Q_PROPERTY(QString plmn READ getPlmn NOTIFY plmnChanged)
     Q_PROPERTY(QString ta READ getTa NOTIFY taChanged)
@@ -164,7 +164,8 @@ class engineClass : public QObject
     // Nuke counter
     Q_PROPERTY(bool nukeCounterVisible READ getNukeCounterVisible NOTIFY nukeCounterVisibleChanged)
     Q_PROPERTY(QString nukeCounterText READ getNukeCounterText NOTIFY nukeCounterTextChanged)
-
+    // HF indication
+    Q_PROPERTY(bool hfIndicatorVisible READ getHfIndicatorVisible() NOTIFY hfIndicatorVisibleChanged)
 
 public:
     explicit engineClass(QObject *parent = nullptr);
@@ -227,7 +228,6 @@ public:
     Q_INVOKABLE bool getButton_9_active();
 
     Q_INVOKABLE bool getGoSecureButton_active();
-
     Q_INVOKABLE QString getStatusMessage();
     Q_INVOKABLE QString getMyCallSign();
 
@@ -325,19 +325,7 @@ public:
     Q_INVOKABLE QString getDimColor();
     Q_INVOKABLE bool getNukeCounterVisible();
     Q_INVOKABLE QString getNukeCounterText();
-
-
-/*
-    Q_PROPERTY(QString plmn READ getPlmn NOTIFY plmnChanged)
-    Q_PROPERTY(QString ta READ  NOTIFY taChanged)
-    Q_PROPERTY(QString gc READ  NOTIFY gcChanged)
-    Q_PROPERTY(QString sc READ  NOTIFY scChanged)
-    Q_PROPERTY(QString ac READ  NOTIFY acChanged)
-    Q_PROPERTY(QString rssi READ  NOTIFY rssiChanged)
-    Q_PROPERTY(QString rsrq READ  NOTIFY rsrqChanged)
-    Q_PROPERTY(QString rsrp READ  NOTIFY rsrpChanged)
-    Q_PROPERTY(QString snr READ  NOTIFY snrChanged)
-*/
+    Q_INVOKABLE bool getHfIndicatorVisible();
 
 private:
     QString m_peer_0_CallSign="";
@@ -444,8 +432,10 @@ private:
     /* GPIO Notifier */
     QSocketNotifier * m_pwrButtonNotify;
     QSocketNotifier * m_volButtonNotify;
+    QSocketNotifier * m_hfPlugNotify;
     int m_pwrButtonFileHandle;
     int m_volButtonFileHandle;
+    int m_hfPlugFileHandle;
     bool m_deviceLocked=false;
     bool m_touchBlock_active=false;
     bool m_lockScreen_active=true;
@@ -515,6 +505,8 @@ private:
     QTimer *nukeCountDownTimer;
     int nukeCountDownValue;
     QString mDefaultRouteInterface;
+    QString mMixerNameSpeaker;
+    bool mHfIndicatorVisible;
 
 
 
@@ -539,6 +531,7 @@ private slots:
     void readPwrGpioButton();
     void readPwrGpioButtonTimer();
     void readVolGpioButton();
+    void readHfPlugEvents();
     void runExternalCmd(QString command, QStringList parameters );
     void runExternalCmdCaptureOutput(QString command, QStringList parameters);
     void lockDevice(bool state);
@@ -564,7 +557,7 @@ private slots:
     QString getDefaultRoute();
 
 signals:
-    void peer_0_NameChanged(); // emit this on m_peerCallSign change
+    void peer_0_NameChanged();
     void peer_1_NameChanged();
     void peer_2_NameChanged();
     void peer_3_NameChanged();
@@ -675,8 +668,7 @@ signals:
     void nightModeEnabledChanged();
     void nukeCounterVisibleChanged();
     void nukeCounterTextChanged();
-
-
+    void hfIndicatorVisibleChanged();
 
 };
 

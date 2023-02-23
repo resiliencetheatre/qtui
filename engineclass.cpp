@@ -68,6 +68,7 @@
 #define SUBSTITUTE_CHAR_CODE    24
 #define PWR_GPIO_INPUT_PATH     "/dev/input/by-path/platform-1f03400.rsb-platform-axp221-pek-event"
 #define VOL_GPIO_INPUT_PATH     "/dev/input/by-path/platform-1c21800.lradc-event"
+#define HF_PLUG_GPIO_INPUT_PATH "/dev/input/by-path/platform-sound-event"
 #define BATTERY_CAPACITY_PATH   "/sys/class/power_supply/axp20x-battery/capacity"
 #define BATTERY_CURRENT_PATH    "/sys/class/power_supply/axp20x-battery/current_now"
 #define BATTERY_STATUS_PATH     "/sys/class/power_supply/axp20x-battery/status"
@@ -119,11 +120,18 @@ engineClass::engineClass(QObject *parent)
     } else {
         qErrnoWarning(errno, "Cannot open input device %s", volButtonDevice.constData());
     }
-
+    /* Headset insert  */
+    QByteArray hfPlugDevice = QByteArrayLiteral(HF_PLUG_GPIO_INPUT_PATH);
+    m_hfPlugFileHandle = open(hfPlugDevice.constData(), O_RDONLY);
+    if (m_hfPlugFileHandle >= 0) {
+        m_hfPlugNotify = new QSocketNotifier(m_hfPlugFileHandle, QSocketNotifier::Read, this);
+        connect(m_hfPlugNotify, SIGNAL(activated(int)), this, SLOT(readHfPlugEvents()));
+    } else {
+        qErrnoWarning(errno, "Cannot open input device %s", hfPlugDevice.constData());
+    }
     /* Enable backlight */
     runExternalCmd("/bin/pptk-backlight", {"set_percent", "50"});
     m_screenTimeoutCounter=DEVICE_LOCK_TIME;
-
     /* Set default wifi status on top bar*/
     m_wifiNotifyText = "WIFI";
     m_wifiNotifyColor = mMainColor;
@@ -135,8 +143,11 @@ engineClass::engineClass(QObject *parent)
     /* No nuke */
     mNukeCounterVisible = false;
     emit nukeCounterVisibleChanged();
-
-
+    /* Internal speaker by default */
+    mMixerNameSpeaker = "Earpiece";
+    runExternalCmd("/root/utils/internal-speaker.sh", {});
+    mHfIndicatorVisible = false;
+    emit hfIndicatorVisibleChanged();
 
 }
 
@@ -168,6 +179,11 @@ bool engineClass::getNukeCounterVisible()
 QString engineClass::getNukeCounterText()
 {
     return mNukeCounterText;
+}
+
+bool engineClass::getHfIndicatorVisible()
+{
+    return mHfIndicatorVisible;
 }
 
 void engineClass::runExternalCmd(QString command, QStringList parameters){
@@ -416,18 +432,46 @@ void engineClass::readVolGpioButton()
     }
 }
 
+/* 3.5 mm headphone detection */
+void engineClass::readHfPlugEvents()
+{
+    struct input_event in_ev = { 0 };
+    /*  Loop read data  */
+    if (sizeof(struct input_event) != read(m_hfPlugFileHandle, &in_ev, sizeof(struct input_event))) {
+        perror("read error");
+        exit(-1);
+    }
+    switch (in_ev.type) {
+    case EV_SW:
+    {
+        if (SW_HEADPHONE_INSERT == in_ev.code && in_ev.value == 1 ) {
+            mMixerNameSpeaker = "Headphone";
+            runExternalCmd("/root/utils/headset.sh", {});
+            mHfIndicatorVisible = true;
+            emit hfIndicatorVisibleChanged();
+            break;
+        }
+        if (SW_HEADPHONE_INSERT == in_ev.code && in_ev.value == 0 ) {
+            mMixerNameSpeaker = "Earpiece";
+            runExternalCmd("/root/utils/internal-speaker.sh", {});
+            mHfIndicatorVisible = false;
+            emit hfIndicatorVisibleChanged();
+            break;
+        }
+    }
+    }
+}
+
 /*
  * Set system volume with external process.
  *
- * FIXME: UI elements (or automation) needed still for mixer naming
+ * * Mixer is now named based on HF plug status.
  *
  * Playback volume:     amixer sset [DEVICENAME] Playback 100%
  * Microphone volume:   amixer sset [DEVICENAME] Capture 5%+
  *
  * Internal earpiece: "'Earpiece'"
  * Internal mic: "'Mic1'" or "'Mic2'"
- *
- * FIXME: This now hardcoded for Internal earpiece testing
  *
  */
 void engineClass::setSystemVolume(int volume)
@@ -436,7 +480,7 @@ void engineClass::setSystemVolume(int volume)
     qint64 pid;
     QProcess process;
     process.setProgram("/usr/bin/amixer");
-    process.setArguments({"sset","'Earpiece'", "Playback",volumePercentString}); // TODO
+    process.setArguments({"sset",mMixerNameSpeaker, "Playback",volumePercentString});
     process.setStandardOutputFile(QProcess::nullDevice());
     process.setStandardErrorFile(QProcess::nullDevice());
     process.startDetached(&pid);
@@ -447,7 +491,7 @@ void engineClass::setMicrophoneVolume(int volume)
     qint64 pid;
     QProcess process;
     process.setProgram("/usr/bin/amixer");
-    process.setArguments({"sset","'Mic'", "Capture", volumePercentString }); // TODO
+    process.setArguments({"sset","'Mic'", "Capture", volumePercentString });
     process.setStandardOutputFile(QProcess::nullDevice());
     process.setStandardErrorFile(QProcess::nullDevice());
     process.startDetached(&pid);

@@ -78,10 +78,10 @@ ApplicationWindow {
             color: eClass.mainColor
         }
     }
+    // Network: LTE or WIFI
     Item {
         id: connectionLabel
         visible: true
-        // anchors.top: parent
         anchors.right: parent.right
         anchors.rightMargin: 10
         width: 30
@@ -104,29 +104,37 @@ ApplicationWindow {
             color: eClass.wifiNotifyColor
         }
     }
-
+    /* HF Indicator */
     Item {
         id: spacer
         visible: true
-        // anchors.top: parent
         anchors.right: connectionLabel.left
-        width: 5
+        width: 10
+        height: 12
         Rectangle {
             radius: 0
             width: spacer.width
             height: spacer.height
             color: "#000000"
-            border.width: 1
+            border.width: 0
             border.color: eClass.mainColor
+        }
+        Text {
+            id: hfConnectedStatus
+            text: "HF"
+            visible: eClass.hfIndicatorVisible
+            anchors.fill: parent
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pointSize: 7
+            color: eClass.mainColor
         }
     }
 
     Item {
         id: connectionTypeLabel
         visible: true
-        // anchors.top: parent
         anchors.right: spacer.left
-
         width: 50
         height: 12
         Rectangle {
@@ -150,7 +158,6 @@ ApplicationWindow {
     Item {
         id: spacerTwo
         visible: true
-        // anchors.top: parent
         anchors.right: connectionTypeLabel.left
         width: 5
         Rectangle {
@@ -158,17 +165,15 @@ ApplicationWindow {
             width: spacerTwo.width
             height: spacerTwo.height
             color: "#000000"
-            border.width: 1
-            border.color: eClass.mainColor
+            border.width: 0
+            border.color: "#00FF00"
         }
     }
 
     Item {
         id: batteryLabel
         visible: true
-        // anchors.top: parent
         anchors.right: spacerTwo.left
-
         width: 40
         height: 12
         Rectangle {
