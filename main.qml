@@ -318,6 +318,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(1)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -336,6 +337,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(2)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -353,6 +355,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(3)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -371,6 +374,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(4)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -389,6 +393,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(5)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -406,6 +411,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(6)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -424,6 +430,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(7)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -442,6 +449,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(8)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -459,6 +467,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(9)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -477,6 +486,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(100)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -495,6 +505,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(0)
+                    eClass.registerTouch()
                 }
             }
         }
@@ -512,6 +523,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 onClicked: {
                     eClass.lockNumberEntry(99)
+                    eClass.registerTouch()
                 }
             }
         }

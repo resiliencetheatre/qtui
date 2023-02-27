@@ -510,6 +510,10 @@ void engineClass::loadUserPreferences()
     emit deepSleepEnabledChanged();
     m_lteEnabled = settings.value("lte",false).toBool();
     emit lteEnabledChanged();
+
+    m_lteCellDisplayEnabled=settings.value("celldisplay",false).toBool();
+    emit lteCellDisplayEnabledChanged();
+
     m_nightModeEnabled = settings.value("nightmode",false).toBool();
     emit nightModeEnabledChanged();
 
@@ -2830,6 +2834,23 @@ void engineClass::changeLteEnabled(bool newLteEnabled)
 
     setLteEnabled(newLteEnabled);
 }
+
+/* Cell display */
+bool engineClass::lteCellDisplayEnabled() const
+{
+    return m_lteCellDisplayEnabled;
+}
+
+void engineClass::setLteCellDisplayEnabled(bool newLteCellDisplayEnabled)
+{
+    if (m_lteCellDisplayEnabled == newLteCellDisplayEnabled)
+        return;
+    m_lteCellDisplayEnabled = newLteCellDisplayEnabled;
+    emit lteCellDisplayEnabledChanged();
+    QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
+    settings.setValue("celldisplay", m_lteCellDisplayEnabled);
+}
+
 
 /* Night mode */
 bool engineClass::nightModeEnabled() const

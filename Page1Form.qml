@@ -127,7 +127,7 @@ Page {
     //
     Frame {
         id: cellStatus
-        visible: eClass.lteEnabled
+        visible: eClass.cellDisplayEnabled
         anchors.topMargin: -5
         anchors.top: parent.top
         anchors.left: parent.left

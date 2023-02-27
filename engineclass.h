@@ -145,6 +145,7 @@ class engineClass : public QObject
     Q_PROPERTY(QString aboutTextContent READ getAboutTextContent() NOTIFY aboutTextContentChanged)
     Q_PROPERTY(bool deepSleepEnabled READ deepSleepEnabled WRITE setDeepSleepEnabled NOTIFY deepSleepEnabledChanged)
     Q_PROPERTY(bool lteEnabled READ lteEnabled WRITE setLteEnabled NOTIFY lteEnabledChanged)
+    Q_PROPERTY(bool cellDisplayEnabled READ lteCellDisplayEnabled WRITE setLteCellDisplayEnabled NOTIFY lteCellDisplayEnabledChanged)
     Q_PROPERTY(bool nightModeEnabled READ nightModeEnabled WRITE setNightModeEnabled NOTIFY nightModeEnabledChanged)
     Q_PROPERTY(bool powerOffDialogVisible READ getPowerOffVisible() NOTIFY powerOffVisibleChanged)
     // Cellular info
@@ -165,7 +166,7 @@ class engineClass : public QObject
     Q_PROPERTY(bool nukeCounterVisible READ getNukeCounterVisible NOTIFY nukeCounterVisibleChanged)
     Q_PROPERTY(QString nukeCounterText READ getNukeCounterText NOTIFY nukeCounterTextChanged)
     // HF indication
-    Q_PROPERTY(bool hfIndicatorVisible READ getHfIndicatorVisible() NOTIFY hfIndicatorVisibleChanged)
+    Q_PROPERTY(bool hfIndicatorVisible READ getHfIndicatorVisible NOTIFY hfIndicatorVisibleChanged)
 
 public:
     explicit engineClass(QObject *parent = nullptr);
@@ -301,6 +302,10 @@ public:
     bool lteEnabled() const;
     void setLteEnabled(bool newLteEnabled);
     Q_INVOKABLE void changeLteEnabled(bool newLteEnabled);
+
+    /* Cell Display */
+    bool lteCellDisplayEnabled() const;
+    Q_INVOKABLE void setLteCellDisplayEnabled(bool newLteCellDisplayEnabled);
 
     bool nightModeEnabled() const;
     void setNightModeEnabled(bool newNightModeEnabled);
@@ -507,6 +512,7 @@ private:
     QString mDefaultRouteInterface;
     QString mMixerNameSpeaker;
     bool mHfIndicatorVisible;
+    bool m_lteCellDisplayEnabled;
 
 
 
@@ -669,7 +675,7 @@ signals:
     void nukeCounterVisibleChanged();
     void nukeCounterTextChanged();
     void hfIndicatorVisibleChanged();
-
+    void lteCellDisplayEnabledChanged();
 };
 
 #endif // ENGINECLASS_H
