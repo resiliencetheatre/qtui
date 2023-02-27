@@ -1872,11 +1872,10 @@ void engineClass::debugThis(QString debugMessage)
 
 void engineClass::powerOff()
 {
-    // disconnectButton(); // blocks
     qint64 pid;
     QProcess process;
-    process.setProgram("systemctl");
-    process.setArguments({"poweroff"});
+    process.setProgram("poweroff");
+    process.setArguments({"-f"});
     process.startDetached(&pid);
 }
 
