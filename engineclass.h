@@ -167,6 +167,8 @@ class engineClass : public QObject
     Q_PROPERTY(QString nukeCounterText READ getNukeCounterText NOTIFY nukeCounterTextChanged)
     // HF indication
     Q_PROPERTY(bool hfIndicatorVisible READ getHfIndicatorVisible NOTIFY hfIndicatorVisibleChanged)
+    // APN name
+    Q_PROPERTY(QString apnName READ getApnName NOTIFY apnNameChanged)
 
 public:
     explicit engineClass(QObject *parent = nullptr);
@@ -299,18 +301,16 @@ public:
     void setDeepSleepEnabled(bool newDeepSleepEnabled);
     Q_INVOKABLE void changeDeepSleepEnabled(bool newDeepSleepEnabled);
 
+    /* Cellular */
     bool lteEnabled() const;
     void setLteEnabled(bool newLteEnabled);
     Q_INVOKABLE void changeLteEnabled(bool newLteEnabled);
-
-    /* Cell Display */
     bool lteCellDisplayEnabled() const;
     Q_INVOKABLE void setLteCellDisplayEnabled(bool newLteCellDisplayEnabled);
-
+    Q_INVOKABLE void apnSaveButton(QString apn);
     bool nightModeEnabled() const;
     void setNightModeEnabled(bool newNightModeEnabled);
     Q_INVOKABLE void changeNightModeEnabled(bool newNightModeEnabled);
-
     Q_INVOKABLE QString getPlmn();
     Q_INVOKABLE QString getTa();
     Q_INVOKABLE QString getGc();
@@ -331,6 +331,7 @@ public:
     Q_INVOKABLE bool getNukeCounterVisible();
     Q_INVOKABLE QString getNukeCounterText();
     Q_INVOKABLE bool getHfIndicatorVisible();
+    Q_INVOKABLE QString getApnName();
 
 private:
     QString m_peer_0_CallSign="";
@@ -513,6 +514,7 @@ private:
     QString mMixerNameSpeaker;
     bool mHfIndicatorVisible;
     bool m_lteCellDisplayEnabled;
+    QString mApnName;
 
 
 
@@ -561,6 +563,7 @@ private slots:
     void readNukeTimer();
     void countNukeTimer();
     QString getDefaultRoute();
+    void loadApnName();
 
 signals:
     void peer_0_NameChanged();
@@ -676,6 +679,7 @@ signals:
     void nukeCounterTextChanged();
     void hfIndicatorVisibleChanged();
     void lteCellDisplayEnabledChanged();
+    void apnNameChanged();
 };
 
 #endif // ENGINECLASS_H

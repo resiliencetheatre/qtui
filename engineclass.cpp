@@ -628,6 +628,8 @@ void engineClass::loadSettings()
     emit peer_8_NameColorChanged();
     m_peer_9_CallSignColor = mMainColor;
     emit peer_9_NameColorChanged();
+    // Load APN
+    loadApnName();
 }
 
 void engineClass::setVaultMode(bool vaultModeActive) {
@@ -2850,6 +2852,47 @@ void engineClass::setLteCellDisplayEnabled(bool newLteCellDisplayEnabled)
     QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
     settings.setValue("celldisplay", m_lteCellDisplayEnabled);
 }
+
+/* Save APN to env file */
+void engineClass::apnSaveButton(QString apn)
+{
+    mApnName = apn;
+    QString filename="/root/utils/apn.env";
+    QFile file(filename);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)){
+        QTextStream out(&file);
+             out << apn;
+    }
+    file.close();
+}
+
+QString engineClass::getApnName()
+{
+    return mApnName;
+}
+
+// Load APN from file and default to 'internet' if no file is present
+void engineClass::loadApnName()
+{
+    QString apnFromFile;
+    QString filename="/root/utils/apn.env";
+    QFile file(filename);
+    if(!file.exists()){
+        apnFromFile = "internet";
+    }
+    else {
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)){
+            QTextStream stream(&file);
+            while (!stream.atEnd()){
+                apnFromFile = stream.readLine();
+            }
+        }
+        file.close();
+    }
+    mApnName = apnFromFile;
+    emit apnNameChanged();
+}
+
 
 
 /* Night mode */

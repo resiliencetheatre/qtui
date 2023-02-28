@@ -29,7 +29,7 @@ Page {
     Flickable {
         anchors.fill: parent
         contentWidth: parent.width
-        contentHeight: 400
+        contentHeight: 600
         clip: true
 
 
@@ -51,7 +51,8 @@ Page {
                 id: wifiNotesLabel
                 anchors.top: wifiScanTitle.bottom
                 anchors.left: parent.left
-                anchors.leftMargin: 5
+                anchors.leftMargin: 15
+                anchors.topMargin: 0
                 text: qsTr("Scan and connect to wifi network")
                 font.pointSize: 6
                 color: eClass.mainColor
@@ -98,9 +99,9 @@ Page {
                 anchors.top: wifiNotesLabel.bottom
                 anchors.topMargin: 10
                 anchors.left: parent.left
-                anchors.leftMargin: 5
+                anchors.leftMargin: 15 // 5
                 height: 20
-                width: 140
+                width: 130 // 140
                 leftPadding: 3
                 onCurrentIndexChanged: wifiPassword.text = "";
                 delegate: ItemDelegate {
@@ -210,9 +211,9 @@ Page {
             TextField {
                 id: wifiPassword
                 anchors.left: parent.left
-                anchors.leftMargin: 5
+                anchors.leftMargin: 15
                 height: 20
-                width: 140
+                width: 130
                 anchors.top: control.bottom
                 anchors.topMargin: 10
                 padding: 1
@@ -277,7 +278,7 @@ Page {
             Label {
                 id: wifiStatusTitle
                 anchors.left: parent.left
-                anchors.leftMargin: 5
+                anchors.leftMargin: 15
                 height: 15
                 width: 140
                 anchors.top: wifiPassword.bottom
@@ -291,7 +292,7 @@ Page {
             Text {
                 id: wifiStatusText
                 anchors.left: parent.left
-                anchors.leftMargin: 10
+                anchors.leftMargin: 15
                 height: 20
                 width: parent.width - 50
                 anchors.rightMargin: 20
@@ -446,10 +447,10 @@ Page {
                 height: 20
                 width: 140
                 anchors.top: nightModeCheckbox.bottom
-                anchors.topMargin: 15
+                anchors.topMargin: 10
                 padding: 1
                 font.pointSize: 8
-                text: qsTr("Connectivity")
+                text: qsTr("Cellular connection")
                 color: eClass.mainColor
             }
             // LTE
@@ -536,6 +537,90 @@ Page {
                     leftPadding: lteCellDisplayCheckbox.indicator.width + lteCellDisplayCheckbox.spacing
                 }
             }
+
+            Label {
+                id: apnTitle
+                anchors.left: parent.left
+                anchors.leftMargin: 15
+                height: 15
+                width: 140
+                anchors.top: lteCellDisplayCheckbox.bottom
+                anchors.topMargin: 0
+                padding: 1
+                font.pointSize: 6
+                text: qsTr("APN (requires reboot)")
+                color: eClass.mainColor
+            }
+
+            // APN
+            TextField {
+                id: apnName
+                anchors.left: parent.left
+                anchors.leftMargin: 15
+                height: 20
+                width: 130
+                anchors.top: apnTitle.bottom
+                anchors.topMargin: 0
+                padding: 1
+                font.pointSize: 8
+                color: eClass.mainColor
+                placeholderTextColor: eClass.dimColor
+                text: eClass.apnName
+                onAccepted: {
+
+                }
+                /* Limit to 63 */
+                onTextChanged: {
+                    eClass.registerTouch()
+                    if (length > 63)
+                        remove(63, length)
+                }
+                background: Rectangle {
+                    radius: 2
+                    color: "#000000"
+                    anchors.fill: parent
+                    height: 20
+                    border.color: eClass.mainColor
+                    border.width: 1
+                }
+            }
+
+            // APN save button
+            Button {
+                id: apnSaveButton
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                anchors.top: apnTitle.bottom
+                anchors.topMargin: 0
+                width: 70
+                height: 20
+                text: "Save"
+                font.pointSize: 8
+                checkable: false
+                onClicked: {
+                    eClass.apnSaveButton(apnName.text)
+                    eClass.registerTouch()
+                }
+                contentItem: Text {
+                    text: parent.text
+                    font: parent.font
+                    opacity: enabled ? 1.0 : 0.3
+                    color: eClass.mainColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+                background: Rectangle {
+                    anchors.fill: parent
+                    color: parent.down ? eClass.dimColor : "#000"
+                    opacity: enabled ? 1 : 0.3
+                    border.color: parent.down ? eClass.mainColor : eClass.dimColor
+                    radius: 2
+                }
+            }
+
+
+
 
             // About button
             Button {
