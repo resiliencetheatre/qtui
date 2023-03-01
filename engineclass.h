@@ -145,7 +145,10 @@ class engineClass : public QObject
     Q_PROPERTY(QString aboutTextContent READ getAboutTextContent() NOTIFY aboutTextContentChanged)
     Q_PROPERTY(bool deepSleepEnabled READ deepSleepEnabled WRITE setDeepSleepEnabled NOTIFY deepSleepEnabledChanged)
     Q_PROPERTY(bool lteEnabled READ lteEnabled WRITE setLteEnabled NOTIFY lteEnabledChanged)
+
     Q_PROPERTY(bool cellDisplayEnabled READ lteCellDisplayEnabled WRITE setLteCellDisplayEnabled NOTIFY lteCellDisplayEnabledChanged)
+
+
     Q_PROPERTY(bool nightModeEnabled READ nightModeEnabled WRITE setNightModeEnabled NOTIFY nightModeEnabledChanged)
     Q_PROPERTY(bool powerOffDialogVisible READ getPowerOffVisible() NOTIFY powerOffVisibleChanged)
     // Cellular info
@@ -169,6 +172,9 @@ class engineClass : public QObject
     Q_PROPERTY(bool hfIndicatorVisible READ getHfIndicatorVisible NOTIFY hfIndicatorVisibleChanged)
     // APN name
     Q_PROPERTY(QString apnName READ getApnName NOTIFY apnNameChanged)
+    // macsec
+    Q_PROPERTY(bool macsecPttEnabled READ getMacsecPttEnabled WRITE setMacsecPttEnabled NOTIFY macsecPttEnabledChanged)
+    Q_PROPERTY(QString macsecKeyed READ getMacsecKeyed NOTIFY macsecKeyedChanged)
 
 public:
     explicit engineClass(QObject *parent = nullptr);
@@ -332,6 +338,10 @@ public:
     Q_INVOKABLE QString getNukeCounterText();
     Q_INVOKABLE bool getHfIndicatorVisible();
     Q_INVOKABLE QString getApnName();
+
+    bool getMacsecPttEnabled();
+    Q_INVOKABLE void setMacsecPttEnabled(bool newPttValue);
+    Q_INVOKABLE QString getMacsecKeyed();
 
 private:
     QString m_peer_0_CallSign="";
@@ -515,6 +525,8 @@ private:
     bool mHfIndicatorVisible;
     bool m_lteCellDisplayEnabled;
     QString mApnName;
+    bool mMacsecPttEnabled;
+    QString mMacsecKeyed;
 
 
 
@@ -680,6 +692,8 @@ signals:
     void hfIndicatorVisibleChanged();
     void lteCellDisplayEnabledChanged();
     void apnNameChanged();
+    void macsecPttEnabledChanged();
+    void macsecKeyedChanged();
 };
 
 #endif // ENGINECLASS_H

@@ -44,18 +44,38 @@ Page {
                 anchors.left: parent.left
                 anchors.leftMargin: 5
                 text: qsTr("Wifi network")
-                font.pointSize: 8
+                font.pointSize: 10
                 color: eClass.mainColor
             }
+
+            Rectangle {
+                height: 1
+                gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: eClass.mainColor }
+                        GradientStop { position: 1.0; color: "#000000"  }
+                }
+                anchors {
+                    top: wifiScanTitle.bottom
+                    left: parent.left
+                    right: parent.right
+                    leftMargin: 5
+                    rightMargin: 5
+                    topMargin: 1
+                    bottomMargin: 1
+
+                }
+            }
+
             Label {
                 id: wifiNotesLabel
                 anchors.top: wifiScanTitle.bottom
                 anchors.left: parent.left
                 anchors.leftMargin: 15
-                anchors.topMargin: 0
+                anchors.topMargin: 10
                 text: qsTr("Scan and connect to wifi network")
                 font.pointSize: 6
-                color: eClass.mainColor
+                color: eClass.dimColor
             }
 
             // Erase All
@@ -63,8 +83,8 @@ Page {
                 id: wifiEraseAllButton
                 anchors.right: parent.right
                 anchors.rightMargin: 10
-                anchors.top: parent.top
-                anchors.topMargin: 5
+                anchors.top: wifiScanTitle.bottom //  parent.top
+                anchors.topMargin: 10
                 width: 70
                 height: 20
                 text: "Erase All"
@@ -96,7 +116,7 @@ Page {
                 id: control
                 model: eClass.wifiNetworks
                 font.pointSize: 8
-                anchors.top: wifiNotesLabel.bottom
+                anchors.top: wifiEraseAllButton.bottom // wifiNotesLabel.bottom
                 anchors.topMargin: 10
                 anchors.left: parent.left
                 anchors.leftMargin: 15 // 5
@@ -286,7 +306,7 @@ Page {
                 padding: 1
                 font.pointSize: 6
                 text: qsTr("Wifi status:")
-                color: eClass.mainColor
+                color: eClass.dimColor
             }
 
             Text {
@@ -347,18 +367,37 @@ Page {
                 height: 20
                 width: 140
                 anchors.top: wifiStatusText.bottom
-                anchors.topMargin: 15
+                anchors.topMargin: 20
                 padding: 1
-                font.pointSize: 8
+                font.pointSize: 10
                 text: qsTr("Options")
                 color: eClass.mainColor
+            }
+
+            Rectangle {
+                height: 1
+                gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: eClass.mainColor }
+                        GradientStop { position: 1.0; color: "#000000"  }
+                }
+                anchors {
+                    top: powerSaveTitle.bottom
+                    left: parent.left
+                    right: parent.right
+                    leftMargin: 5
+                    rightMargin: 5
+                    topMargin: 1
+                    bottomMargin: 1
+
+                }
             }
 
             // Checkbox (this was hard for me to understand)
             CheckBox {
                 id: deepSleepCheckbox
                 anchors.top: powerSaveTitle.bottom
-                anchors.topMargin: -5
+                anchors.topMargin: 5
                 anchors.left: parent.left
                 anchors.leftMargin: 10
                 text: qsTr("deep sleep on screen lock")
@@ -449,15 +488,36 @@ Page {
                 anchors.top: nightModeCheckbox.bottom
                 anchors.topMargin: 10
                 padding: 1
-                font.pointSize: 8
+                font.pointSize: 10
                 text: qsTr("Cellular connection")
                 color: eClass.mainColor
             }
+
+            Rectangle {
+                height: 1
+                gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: eClass.mainColor }
+                        GradientStop { position: 1.0; color: "#000000"  }
+                }
+                anchors {
+                    top: connectivityTitle.bottom
+                    left: parent.left
+                    right: parent.right
+                    leftMargin: 5
+                    rightMargin: 5
+                    topMargin: 1
+                    bottomMargin: 1
+
+                }
+            }
+
+
             // LTE
             CheckBox {
                 id: lteCheckbox
                 anchors.top: connectivityTitle.bottom
-                anchors.topMargin: -5
+                anchors.topMargin: 5
                 anchors.left: parent.left
                 anchors.leftMargin: 10
                 text: qsTr("Cellular data (requires boot)")
@@ -549,7 +609,7 @@ Page {
                 padding: 1
                 font.pointSize: 6
                 text: qsTr("APN (requires reboot)")
-                color: eClass.mainColor
+                color: eClass.dimColor
             }
 
             // APN
@@ -618,6 +678,149 @@ Page {
                     radius: 2
                 }
             }
+
+            // macsec
+            Label {
+                id: macsecTitle
+                anchors.left: parent.left
+                anchors.leftMargin: 5
+                height: 20
+                width: 140
+                anchors.top: apnName.bottom
+                anchors.topMargin: 15
+                padding: 1
+                font.pointSize: 10
+                text: qsTr("MACsec (IEEE 802.1AE)")
+                color: eClass.mainColor
+            }
+
+            Rectangle {
+                height: 1
+                gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: eClass.mainColor }
+                        GradientStop { position: 1.0; color: "#000000"  }
+                }
+                anchors {
+                    top: macsecTitle.bottom
+                     left: parent.left
+                     right: parent.right
+                     leftMargin: 5
+                     rightMargin: 5
+                     topMargin: 1
+                     bottomMargin: 1
+                }
+            }
+
+            // macsec PTT
+            CheckBox {
+                id: pttCheckbox
+                anchors.top: macsecTitle.bottom
+                anchors.topMargin: 5
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                text: qsTr("Enable PTT to macsec segment")
+                checked: eClass.macsecPttEnabled
+                onToggled: {
+                    if (checked !== eClass.macsecPttEnabled ) {
+                        eClass.setMacsecPttEnabled(pttCheckbox.checkState)
+                    }
+                }
+                indicator: Rectangle {
+                    implicitWidth: 10
+                    implicitHeight: 10
+                    x: pttCheckbox.leftPadding
+                    y: parent.height / 2 - height / 2
+                    radius: 2
+                    color: "transparent"
+                    border.color: eClass.mainColor
+
+                    Rectangle {
+                        width: 6
+                        height: 6
+                        x: 2
+                        y: 2
+                        radius: 2
+                        color: eClass.mainColor
+                        visible: pttCheckbox.checked
+                    }
+                }
+                contentItem: Text {
+                    text: pttCheckbox.text
+                    font.pointSize: 8
+                    opacity: enabled ? 1.0 : 0.3
+                    color: eClass.mainColor
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: pttCheckbox.indicator.width + pttCheckbox.spacing
+                }
+            }
+            Label {
+                id: pttHelpText
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                height: 15
+                width: 140
+                anchors.top: pttCheckbox.bottom
+                anchors.topMargin: -6
+                padding: 1
+                font.pointSize: 6
+                text: qsTr("Volume Down changes to PTT button.\nRequires L2 capable radio, like AN/PRC-169.")
+                color: eClass.dimColor
+            }
+            Label {
+                id: pttKeyingStatus
+                anchors.left: parent.left
+                anchors.leftMargin: 15
+                height: 15
+                width: 110
+                anchors.top: pttHelpText.bottom
+                anchors.topMargin: 20
+                padding: 1
+                font.pointSize: 8
+                text: qsTr("MACsec key status:")
+                color: eClass.mainColor
+            }
+            Rectangle {
+                height: 20
+                color: "transparent"
+                radius: 0
+                border.width: 1
+                border.color: eClass.mainColor
+
+                anchors {
+                    top: pttHelpText.bottom
+                     left: pttKeyingStatus.right
+                     right: parent.right
+                     leftMargin: 45
+                     rightMargin: 10
+                     topMargin: 25
+                     bottomMargin: 10
+                }
+                Text {
+
+                        anchors.centerIn: parent
+                        id: macsecKeyStatus
+                        font.pointSize: 8
+                        text:  eClass.macsecKeyed
+                        color: eClass.dimColor
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+            }
+            Label {
+                id: keyloadHelpText
+                anchors.left: parent.left
+                anchors.leftMargin: 15
+                height: 15
+                width: 140
+                anchors.top: pttKeyingStatus.bottom
+                anchors.topMargin: -1
+                padding: 1
+                font.pointSize: 6
+                text: qsTr("Insert HSM module to rekey MACsec.")
+                color: eClass.dimColor
+            }
+
 
 
 

@@ -79,6 +79,8 @@
 #define DEVICE_LOCK_TIME        120
 #define FIFO_TIMEOUT            1
 #define FIFO_REPLY_RECEIVED     0
+#define KEY_UP                  0
+#define KEY_DOWN                1
 
 engineClass::engineClass(QObject *parent)
     : QObject{parent}
@@ -148,7 +150,8 @@ engineClass::engineClass(QObject *parent)
     runExternalCmd("/root/utils/internal-speaker.sh", {});
     mHfIndicatorVisible = false;
     emit hfIndicatorVisibleChanged();
-
+    mMacsecKeyed = "NO KEY";
+    emit macsecKeyedChanged();
 }
 
 QString engineClass::appVersion()
@@ -360,7 +363,9 @@ void engineClass::readNukeTimer()
 /* Volume up/down:
     * On settings page adjusts backlight
     * Other pages, adjusts volume
-    * 5 s press on volume up activates nuke timer */
+    * 5 s press on volume up activates nuke timer
+    * WiP: PTT when mMacsecPttEnabled
+*/
 void engineClass::readVolGpioButton()
 {
     struct input_event in_ev = { 0 };
@@ -373,31 +378,42 @@ void engineClass::readVolGpioButton()
     switch (in_ev.type) {
     case EV_KEY:
     {
-        /* Volume Down button */
-        if (KEY_VOLUMEDOWN == in_ev.code && in_ev.value == 1 ) {
-            // Brightness
-            if ( m_SwipeViewIndex == 2 ) {
-                if ( mBacklightLevel >= 20 && mBacklightLevel <= 90 ) {
-                    registerTouch();
-                    runExternalCmd("/bin/pptk-backlight", {"set_percent", QString::number(mBacklightLevel)});
-                    mBacklightLevel = mBacklightLevel - 10;
-                }
+        if ( in_ev.code == KEY_VOLUMEDOWN && in_ev.value == KEY_DOWN ) {
+            if ( mMacsecPttEnabled ) {
+                /* TODO: activate PTT */
+                qDebug() << "PTT down!";
+                break;
             } else {
-                /* Volume */
-                if ( m_SpeakerVolumeRuntimeValue > 0 && m_SpeakerVolumeRuntimeValue <= 100 )
-                {
-                    m_SpeakerVolumeRuntimeValue = m_SpeakerVolumeRuntimeValue - 5;
+                /* Brightness */
+                if ( m_SwipeViewIndex == 2 ) {
+                    if ( mBacklightLevel >= 20 && mBacklightLevel <= 90 ) {
+                        registerTouch();
+                        runExternalCmd("/bin/pptk-backlight", {"set_percent", QString::number(mBacklightLevel)});
+                        mBacklightLevel = mBacklightLevel - 10;
+                    }
+                } else {
+                    /* Volume */
+                    if ( m_SpeakerVolumeRuntimeValue > 0 && m_SpeakerVolumeRuntimeValue <= 100 )
+                    {
+                        m_SpeakerVolumeRuntimeValue = m_SpeakerVolumeRuntimeValue - 5;
+                    }
+                    m_statusMessage = "Volume: " + QString::number(m_SpeakerVolumeRuntimeValue) + " %" ;
+                    emit statusMessageChanged();
+                    uPref.volumeValue = QString::number(m_SpeakerVolumeRuntimeValue);
+                    saveUserPreferences();
+                    break;
                 }
-                m_statusMessage = "Volume: " + QString::number(m_SpeakerVolumeRuntimeValue) + " %" ;
-                emit statusMessageChanged();
-                uPref.volumeValue = QString::number(m_SpeakerVolumeRuntimeValue);
-                saveUserPreferences();
+            }
+        }
+        if ( in_ev.code == KEY_VOLUMEDOWN && in_ev.value == KEY_UP ) {
+            if ( mMacsecPttEnabled ) {
+                /* TODO: de-activate PTT */
+                qDebug() << "PTT released";
                 break;
             }
         }
 
-        /* Volume Up button => Down */
-        if (KEY_VOLUMEUP == in_ev.code && in_ev.value == 1 ) {
+        if (in_ev.code == KEY_VOLUMEUP && in_ev.value == KEY_DOWN ) {
             /* Start pre-timer  */
             mVolUpKeyReleased = false;
             if ( !mNukeTimerRunning) {
@@ -424,8 +440,7 @@ void engineClass::readVolGpioButton()
                 break;
             }
         }
-        /* Volume Up key => Up */
-        if ( KEY_VOLUMEUP == in_ev.code && in_ev.value == 0  ) {
+        if ( in_ev.code == KEY_VOLUMEUP  && in_ev.value == KEY_UP  ) {
             mVolUpKeyReleased = true;
         }
     }
@@ -516,6 +531,9 @@ void engineClass::loadUserPreferences()
 
     m_nightModeEnabled = settings.value("nightmode",false).toBool();
     emit nightModeEnabledChanged();
+
+    mMacsecPttEnabled = settings.value("ptt",false).toBool();
+    emit macsecPttEnabledChanged();
 
     if ( m_nightModeEnabled ) {
                                     //  625 nm      Green           640 nm
@@ -1198,13 +1216,26 @@ void engineClass::quickButtonSend(int sendCode)
     }
 }
 
-
 /* Messaging fifo handler [pine] */
 int engineClass::msgFifoChanged()
 {
     QTextStream in(&msgFifoIn);
     QString line = in.readAll();
     QStringList token = line.split(',');
+
+    /* macsec (WiP) */
+    QString secondToken = token[1];
+    if ( secondToken.contains("macsec_keyed") ) {
+        mMacsecKeyed = "LOADED";
+        emit macsecKeyedChanged();
+        return 0;
+    }
+    if ( secondToken.contains("hsm_insert") ) {
+        mMacsecKeyed = "KEYING";
+        emit macsecKeyedChanged();
+        return 0;
+    }
+
     /* Indicate incoming audio request ('ring') */
     if ( token[1] == "ring" )
     {
@@ -1366,7 +1397,6 @@ int engineClass::msgFifoChanged()
                return 0;
            }
        }
-
        /* Normal message to be shown. */
        if (token[1] != "" )
        {
@@ -2869,6 +2899,26 @@ void engineClass::apnSaveButton(QString apn)
 QString engineClass::getApnName()
 {
     return mApnName;
+}
+
+bool engineClass::getMacsecPttEnabled()
+{
+    return mMacsecPttEnabled;
+}
+
+void engineClass::setMacsecPttEnabled(bool newPttValue)
+{
+    if ( mMacsecPttEnabled == newPttValue )
+        return;
+    mMacsecPttEnabled = newPttValue;
+    emit macsecPttEnabledChanged();
+    QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
+    settings.setValue("ptt", mMacsecPttEnabled);
+}
+
+QString engineClass::getMacsecKeyed()
+{
+    return mMacsecKeyed;
 }
 
 // Load APN from file and default to 'internet' if no file is present
