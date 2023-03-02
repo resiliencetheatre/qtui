@@ -79,8 +79,9 @@
 #define DEVICE_LOCK_TIME        120
 #define FIFO_TIMEOUT            1
 #define FIFO_REPLY_RECEIVED     0
-#define KEY_UP                  0
-#define KEY_DOWN                1
+#define SIDEBUTTON_KEY_UP       0
+#define SIDEBUTTON_KEY_DOWN     1
+#define IWD_MAIN_CONFIG_FILE    "/etc/iwd/main.conf"
 
 engineClass::engineClass(QObject *parent)
     : QObject{parent}
@@ -378,7 +379,7 @@ void engineClass::readVolGpioButton()
     switch (in_ev.type) {
     case EV_KEY:
     {
-        if ( in_ev.code == KEY_VOLUMEDOWN && in_ev.value == KEY_DOWN ) {
+        if ( in_ev.code == KEY_VOLUMEDOWN && in_ev.value == SIDEBUTTON_KEY_DOWN ) {
             if ( mMacsecPttEnabled ) {
                 /* TODO: activate PTT */
                 qDebug() << "PTT down!";
@@ -405,7 +406,7 @@ void engineClass::readVolGpioButton()
                 }
             }
         }
-        if ( in_ev.code == KEY_VOLUMEDOWN && in_ev.value == KEY_UP ) {
+        if ( in_ev.code == KEY_VOLUMEDOWN && in_ev.value == SIDEBUTTON_KEY_UP ) {
             if ( mMacsecPttEnabled ) {
                 /* TODO: de-activate PTT */
                 qDebug() << "PTT released";
@@ -413,7 +414,7 @@ void engineClass::readVolGpioButton()
             }
         }
 
-        if (in_ev.code == KEY_VOLUMEUP && in_ev.value == KEY_DOWN ) {
+        if (in_ev.code == KEY_VOLUMEUP && in_ev.value == SIDEBUTTON_KEY_DOWN ) {
             /* Start pre-timer  */
             mVolUpKeyReleased = false;
             if ( !mNukeTimerRunning) {
@@ -440,7 +441,7 @@ void engineClass::readVolGpioButton()
                 break;
             }
         }
-        if ( in_ev.code == KEY_VOLUMEUP  && in_ev.value == KEY_UP  ) {
+        if ( in_ev.code == KEY_VOLUMEUP  && in_ev.value == SIDEBUTTON_KEY_UP  ) {
             mVolUpKeyReleased = true;
         }
     }
@@ -525,15 +526,14 @@ void engineClass::loadUserPreferences()
     emit deepSleepEnabledChanged();
     m_lteEnabled = settings.value("lte",false).toBool();
     emit lteEnabledChanged();
-
     m_lteCellDisplayEnabled=settings.value("celldisplay",false).toBool();
     emit lteCellDisplayEnabledChanged();
-
     m_nightModeEnabled = settings.value("nightmode",false).toBool();
     emit nightModeEnabledChanged();
-
     mMacsecPttEnabled = settings.value("ptt",false).toBool();
     emit macsecPttEnabledChanged();
+    mLayer2WifiEnabled = settings.value("layer2wifi",false).toBool();
+    emit layer2WifiChanged();
 
     if ( m_nightModeEnabled ) {
                                     //  625 nm      Green           640 nm
@@ -2919,6 +2919,23 @@ void engineClass::setMacsecPttEnabled(bool newPttValue)
 QString engineClass::getMacsecKeyed()
 {
     return mMacsecKeyed;
+}
+
+bool engineClass::getLayer2Wifi()
+{
+    return mLayer2WifiEnabled;
+}
+
+void engineClass::setLayer2Wifi(bool newLayer2Value)
+{
+    if ( mLayer2WifiEnabled == newLayer2Value)
+        return;
+    mLayer2WifiEnabled = newLayer2Value;
+    emit layer2WifiChanged();
+    QSettings settings(USER_PREF_INI_FILE,QSettings::IniFormat);
+    settings.setValue("layer2wifi", mLayer2WifiEnabled);
+    QSettings iwd_settings(IWD_MAIN_CONFIG_FILE,QSettings::IniFormat);
+    iwd_settings.setValue("EnableNetworkConfiguration", !mLayer2WifiEnabled);
 }
 
 // Load APN from file and default to 'internet' if no file is present

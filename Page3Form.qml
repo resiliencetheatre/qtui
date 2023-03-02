@@ -712,11 +712,70 @@ Page {
                 }
             }
 
+            // Layer2Wifi
+            CheckBox {
+                id: layer2Wifi
+                anchors.top: macsecTitle.bottom
+                anchors.topMargin: 5
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                text: qsTr("layer2 wifi only")
+                checked: eClass.layer2Wifi
+                onToggled: {
+                    if (checked !== eClass.layer2Wifi ) {
+                        eClass.setLayer2Wifi(layer2Wifi.checkState)
+                    }
+                }
+                indicator: Rectangle {
+                    implicitWidth: 10
+                    implicitHeight: 10
+                    x: layer2Wifi.leftPadding
+                    y: parent.height / 2 - height / 2
+                    radius: 2
+                    color: "transparent"
+                    border.color: eClass.mainColor
+
+                    Rectangle {
+                        width: 6
+                        height: 6
+                        x: 2
+                        y: 2
+                        radius: 2
+                        color: eClass.mainColor
+                        visible: layer2Wifi.checked
+                    }
+                }
+                contentItem: Text {
+                    text: layer2Wifi.text
+                    font.pointSize: 8
+                    opacity: enabled ? 1.0 : 0.3
+                    color: eClass.mainColor
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: layer2Wifi.indicator.width + layer2Wifi.spacing
+                }
+            }
+            Label {
+                id: layer2WifiHelpText
+                anchors.left: parent.left
+                anchors.leftMargin: 32
+                height: 15
+                width: 140
+                anchors.top: layer2Wifi.bottom
+                anchors.topMargin: -6
+                padding: 1
+                font.pointSize: 6
+                text: qsTr("Disables layer3 on wifi connection")
+                color: eClass.dimColor
+            }
+
+
+
+
             // macsec PTT
             CheckBox {
                 id: pttCheckbox
-                anchors.top: macsecTitle.bottom
-                anchors.topMargin: 5
+                anchors.top: layer2WifiHelpText.bottom
+                anchors.topMargin: -5
                 anchors.left: parent.left
                 anchors.leftMargin: 10
                 text: qsTr("Enable PTT to macsec segment")
@@ -754,6 +813,7 @@ Page {
                     leftPadding: pttCheckbox.indicator.width + pttCheckbox.spacing
                 }
             }
+
             Label {
                 id: pttHelpText
                 anchors.left: parent.left
