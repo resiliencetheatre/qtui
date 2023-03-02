@@ -177,6 +177,8 @@ class engineClass : public QObject
     Q_PROPERTY(QString macsecKeyed READ getMacsecKeyed NOTIFY macsecKeyedChanged)
     Q_PROPERTY(bool layer2Wifi READ getLayer2Wifi WRITE setLayer2Wifi NOTIFY layer2WifiChanged)
 
+    Q_PROPERTY(bool macsecValid READ getMacsecValid NOTIFY macsecValidChanged)
+
 public:
     explicit engineClass(QObject *parent = nullptr);
     Q_INVOKABLE void debugThis(QString debugMessage);
@@ -346,6 +348,7 @@ public:
 
     bool getLayer2Wifi();
     Q_INVOKABLE void setLayer2Wifi(bool newLayer2Value);
+    Q_INVOKABLE bool getMacsecValid();
 
 
 private:
@@ -533,6 +536,7 @@ private:
     bool mMacsecPttEnabled;
     QString mMacsecKeyed;
     bool mLayer2WifiEnabled;
+    bool mMacsecKeyValid;
 
 
 
@@ -701,6 +705,7 @@ signals:
     void macsecPttEnabledChanged();
     void macsecKeyedChanged();
     void layer2WifiChanged();
+    void macsecValidChanged();
 };
 
 #endif // ENGINECLASS_H

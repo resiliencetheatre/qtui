@@ -87,11 +87,12 @@ ApplicationWindow {
         width: 30
         height: 12
         Rectangle {
+            visible: eClass.macsecValid
             radius: 0
             width: connectionLabel.width
             height: connectionLabel.height
             color: "#000000"
-            border.width: 0
+            border.width: 1
             border.color: eClass.mainColor
         }
         Text {
@@ -131,6 +132,7 @@ ApplicationWindow {
         }
     }
 
+    /* Latency */
     Item {
         id: connectionTypeLabel
         visible: true

@@ -153,6 +153,8 @@ engineClass::engineClass(QObject *parent)
     emit hfIndicatorVisibleChanged();
     mMacsecKeyed = "NO KEY";
     emit macsecKeyedChanged();
+    mMacsecKeyValid = false;
+    emit macsecValidChanged();
 }
 
 QString engineClass::appVersion()
@@ -1228,6 +1230,8 @@ int engineClass::msgFifoChanged()
     if ( secondToken.contains("macsec_keyed") ) {
         mMacsecKeyed = "LOADED";
         emit macsecKeyedChanged();
+        mMacsecKeyValid = true;
+        emit macsecValidChanged();
         return 0;
     }
     if ( secondToken.contains("hsm_insert") ) {
@@ -2936,6 +2940,11 @@ void engineClass::setLayer2Wifi(bool newLayer2Value)
     settings.setValue("layer2wifi", mLayer2WifiEnabled);
     QSettings iwd_settings(IWD_MAIN_CONFIG_FILE,QSettings::IniFormat);
     iwd_settings.setValue("EnableNetworkConfiguration", !mLayer2WifiEnabled);
+}
+
+bool engineClass::getMacsecValid()
+{
+    return mMacsecKeyValid;
 }
 
 // Load APN from file and default to 'internet' if no file is present
