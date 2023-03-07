@@ -2895,7 +2895,7 @@ void engineClass::apnSaveButton(QString apn)
     QFile file(filename);
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)){
         QTextStream out(&file);
-             out << apn;
+             out << "APN=" << apn;
     }
     file.close();
 }
