@@ -2965,11 +2965,10 @@ void engineClass::loadApnName()
         }
         file.close();
     }
-    mApnName = apnFromFile;
+    QStringList apnElements = apnFromFile.split('=');
+    mApnName = apnElements[1];
     emit apnNameChanged();
 }
-
-
 
 /* Night mode */
 bool engineClass::nightModeEnabled() const
