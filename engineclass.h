@@ -145,11 +145,9 @@ class engineClass : public QObject
     Q_PROPERTY(QString aboutTextContent READ getAboutTextContent() NOTIFY aboutTextContentChanged)
     Q_PROPERTY(bool deepSleepEnabled READ deepSleepEnabled WRITE setDeepSleepEnabled NOTIFY deepSleepEnabledChanged)
     Q_PROPERTY(bool lteEnabled READ lteEnabled WRITE setLteEnabled NOTIFY lteEnabledChanged)
-
     Q_PROPERTY(bool cellDisplayEnabled READ lteCellDisplayEnabled WRITE setLteCellDisplayEnabled NOTIFY lteCellDisplayEnabledChanged)
-
-
     Q_PROPERTY(bool nightModeEnabled READ nightModeEnabled WRITE setNightModeEnabled NOTIFY nightModeEnabledChanged)
+    Q_PROPERTY(bool callSignOnVaultEnabled READ callSignOnVaultEnabled WRITE setCallSignOnVaultEnabled NOTIFY callSignOnVaultEnabledChanged)
     Q_PROPERTY(bool powerOffDialogVisible READ getPowerOffVisible() NOTIFY powerOffVisibleChanged)
     // Cellular info
     Q_PROPERTY(QString plmn READ getPlmn NOTIFY plmnChanged)
@@ -320,6 +318,10 @@ public:
     bool nightModeEnabled() const;
     void setNightModeEnabled(bool newNightModeEnabled);
     Q_INVOKABLE void changeNightModeEnabled(bool newNightModeEnabled);
+
+    bool callSignOnVaultEnabled() const;
+    Q_INVOKABLE void setCallSignOnVaultEnabled(bool newCallSignOnVaultEnabled);
+
     Q_INVOKABLE QString getPlmn();
     Q_INVOKABLE QString getTa();
     Q_INVOKABLE QString getGc();
@@ -500,6 +502,7 @@ private:
     bool m_deepSleepEnabled=false;
     bool m_lteEnabled=false;
     bool m_nightModeEnabled=false;
+    bool m_callSignVisibleOnVaultPage=false;
 
     QString mPlmn;
     QString mTa;
@@ -706,6 +709,7 @@ signals:
     void macsecKeyedChanged();
     void layer2WifiChanged();
     void macsecValidChanged();
+    void callSignOnVaultEnabledChanged();
 };
 
 #endif // ENGINECLASS_H

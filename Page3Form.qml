@@ -479,13 +479,59 @@ Page {
                 }
             }
 
+            // Call Sign visible on vault pin (aku) m_callSignVisibleOnVaultPage
+            CheckBox {
+                id: vaultPinCallSignCheckbox
+                anchors.top: nightModeCheckbox.bottom
+                anchors.topMargin: -5
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                text: qsTr("Call sign on vault pin page")
+                checked: eClass.callSignOnVaultEnabled
+                onToggled: {
+                    if (checked !== eClass.callSignOnVaultEnabled ) {
+                        eClass.setCallSignOnVaultEnabled(vaultPinCallSignCheckbox.checkState)
+                    }
+                }
+                indicator: Rectangle {
+                    implicitWidth: 10
+                    implicitHeight: 10
+                    x: vaultPinCallSignCheckbox.leftPadding
+                    y: parent.height / 2 - height / 2
+                    radius: 2
+                    color: "transparent"
+                    border.color: eClass.mainColor
+
+                    Rectangle {
+                        width: 6
+                        height: 6
+                        x: 2
+                        y: 2
+                        radius: 2
+                        color: eClass.mainColor
+                        visible: vaultPinCallSignCheckbox.checked
+                    }
+                }
+                contentItem: Text {
+                    text: vaultPinCallSignCheckbox.text
+                    font.pointSize: 8
+                    opacity: enabled ? 1.0 : 0.3
+                    color: eClass.mainColor
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: vaultPinCallSignCheckbox.indicator.width + vaultPinCallSignCheckbox.spacing
+                }
+            }
+
+
+            // ---
+
             Label {
                 id: connectivityTitle
                 anchors.left: parent.left
                 anchors.leftMargin: 5
                 height: 20
                 width: 140
-                anchors.top: nightModeCheckbox.bottom
+                anchors.top: vaultPinCallSignCheckbox.bottom
                 anchors.topMargin: 10
                 padding: 1
                 font.pointSize: 10
@@ -881,10 +927,6 @@ Page {
                 color: eClass.dimColor
             }
 
-
-
-
-
             // About button
             Button {
                 id: aboutButton
@@ -892,7 +934,7 @@ Page {
                 // anchors.top: nightModeCheckbox.bottom
                 // anchors.topMargin: 50
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 50
+                anchors.bottomMargin: 20
 
                 width: 20
                 height: 20

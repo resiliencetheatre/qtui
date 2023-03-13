@@ -55,6 +55,7 @@
 #include <unistd.h>
 #include <linux/input.h>
 
+#define PRE_VAULT_INI_FILE      "/opt/prevault.ini"
 #define USER_PREF_INI_FILE      "/opt/tunnel/userpreferences.ini"
 #define TELEMETRY_FIFO_IN       "/tmp/telemetry_fifo_in"
 #define TELEMETRY_FIFO_OUT      "/tmp/telemetry_fifo_out"
@@ -536,6 +537,11 @@ void engineClass::loadUserPreferences()
     emit macsecPttEnabledChanged();
     mLayer2WifiEnabled = settings.value("layer2wifi",false).toBool();
     emit layer2WifiChanged();
+    // Some settings are required to be available before vault is open,
+    // so we load them from PRE_VAULT_INI_FILE
+    QSettings vaultPreferences(PRE_VAULT_INI_FILE,QSettings::IniFormat);
+    m_callSignVisibleOnVaultPage = vaultPreferences.value("vaultpagecallsign",false).toBool();
+    emit callSignOnVaultEnabledChanged();
 
     if ( m_nightModeEnabled ) {
                                     //  625 nm      Green           640 nm
@@ -577,10 +583,18 @@ void engineClass::saveUserPreferences()
 void engineClass::loadSettings()
 {
     if ( m_vaultModeActive ) {
-        m_vaultNotifyText = "ENTER VAULT PIN";
+        QSettings vaultPreferences(PRE_VAULT_INI_FILE,QSettings::IniFormat);
+        bool vaultPinDisplay = vaultPreferences.value("vaultpagecallsign",false).toBool();
+        if ( vaultPinDisplay ) {
+            QString vaultMyCallSign = vaultPreferences.value("my_name","").toString();
+            m_vaultNotifyText = "ENTER VAULT PIN [ " + vaultMyCallSign + " ]";
+            emit vaultScreenNotifyTextChanged();
+        } else {
+            m_vaultNotifyText = "ENTER VAULT PIN";
+            emit vaultScreenNotifyTextChanged();
+        }
         m_vaultNotifyColor = "red";
         m_vaultNotifyTextColor = "white";
-        emit vaultScreenNotifyTextChanged();
         emit vaultScreenNotifyColorChanged();
         emit vaultScreenNotifyTextColorChanged();
         return;
@@ -3017,7 +3031,21 @@ void engineClass::changeNightModeEnabled(bool newNightModeEnabled)
     setNightModeEnabled(newNightModeEnabled);
 }
 
+bool engineClass::callSignOnVaultEnabled() const
+{
+    return m_callSignVisibleOnVaultPage;
+}
 
+void engineClass::setCallSignOnVaultEnabled(bool newCallSignOnVaultEnabled)
+{
+    if (m_callSignVisibleOnVaultPage == newCallSignOnVaultEnabled)
+        return;
+    m_callSignVisibleOnVaultPage = newCallSignOnVaultEnabled;
+    emit callSignOnVaultEnabledChanged();
+    QSettings settings(PRE_VAULT_INI_FILE,QSettings::IniFormat);
+    settings.setValue("vaultpagecallsign", m_callSignVisibleOnVaultPage);
+    settings.setValue("my_name", nodes.myNodeName);
+}
 
 QString engineClass::getPlmn() {
     return mPlmn;

@@ -272,9 +272,9 @@ ApplicationWindow {
         // Vault pin indication
         Rectangle {
             id: vaultIndicator
-            x: 81
+            anchors.horizontalCenter: parent.horizontalCenter
             y: 10
-            width: 85
+            width: 150
             height: 10
             color: eClass.vaultScreenNotifyColor
             radius: 4
