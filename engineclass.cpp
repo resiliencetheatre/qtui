@@ -542,6 +542,8 @@ void engineClass::loadUserPreferences()
     QSettings vaultPreferences(PRE_VAULT_INI_FILE,QSettings::IniFormat);
     m_callSignVisibleOnVaultPage = vaultPreferences.value("vaultpagecallsign",false).toBool();
     emit callSignOnVaultEnabledChanged();
+    m_messageEraseEnabled = vaultPreferences.value("msg_erase",true).toBool();
+    emit messageEraseEnabledChanged();
 
     if ( m_nightModeEnabled ) {
                                     //  625 nm      Green           640 nm
@@ -1303,8 +1305,10 @@ int engineClass::msgFifoChanged()
            fifoWrite( hangupCommandString );
            updateCallStatusIndicator("Incoming Terminated", "lightgreen", "transparent",INDICATE_ONLY);
            eraseConnectionLabels();
-           m_textMsgDisplay = "";
-           emit textMsgDisplayChanged();
+           if ( m_messageEraseEnabled ) {
+               m_textMsgDisplay = "";
+               emit textMsgDisplayChanged();
+           }
            g_connectState = false;
            m_callSignInsigniaImage = "";
            m_insigniaLabelText = "";
@@ -1358,8 +1362,10 @@ int engineClass::msgFifoChanged()
            g_remoteOtpPeerIp = "10.10.0.2";
 
            // Erase messaging
-           m_textMsgDisplay = "";
-           emit textMsgDisplayChanged();
+           if ( m_messageEraseEnabled ) {
+               m_textMsgDisplay = "";
+               emit textMsgDisplayChanged();
+           }
            return 0;
        }
 
@@ -1796,8 +1802,10 @@ void engineClass::connectAsClient(QString nodeIp, QString nodeId)
     emit insigniaLabelStateTextChanged();
 
     // Erase messaging history
-    m_textMsgDisplay = "";
-    emit textMsgDisplayChanged();
+    if ( m_messageEraseEnabled ) {
+        m_textMsgDisplay = "";
+        emit textMsgDisplayChanged();
+    }
 
     // 4.5 We should disable Peer keys when connected (TODO)
     // setContactButtons(false);
@@ -2564,8 +2572,10 @@ void engineClass::disconnectButton()
     emit goSecureButton_activeChanged();
     m_SwipeViewIndex = 0;
     emit swipeViewIndexChanged();
-    m_textMsgDisplay = "";
-    emit textMsgDisplayChanged();
+    if ( m_messageEraseEnabled ) {
+        m_textMsgDisplay = "";
+        emit textMsgDisplayChanged();
+    }
     m_callDialogVisible = false;
     emit callDialogVisibleChanged();
     eraseConnectionLabels();
@@ -3046,6 +3056,22 @@ void engineClass::setCallSignOnVaultEnabled(bool newCallSignOnVaultEnabled)
     settings.setValue("vaultpagecallsign", m_callSignVisibleOnVaultPage);
     settings.setValue("my_name", nodes.myNodeName);
 }
+
+bool engineClass::messageEraseEnabled() const
+{
+    return m_messageEraseEnabled;
+}
+
+void engineClass::setMessageEraseEnabled(bool newMessageEraseEnabled)
+{
+    if (m_messageEraseEnabled == newMessageEraseEnabled)
+        return;
+    m_messageEraseEnabled = newMessageEraseEnabled;
+    emit messageEraseEnabledChanged();
+    QSettings settings(PRE_VAULT_INI_FILE,QSettings::IniFormat);
+    settings.setValue("msg_erase", m_messageEraseEnabled);
+}
+
 
 QString engineClass::getPlmn() {
     return mPlmn;

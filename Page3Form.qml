@@ -396,6 +396,7 @@ Page {
             // Checkbox (this was hard for me to understand)
             CheckBox {
                 id: deepSleepCheckbox
+                enabled: false
                 anchors.top: powerSaveTitle.bottom
                 anchors.topMargin: 5
                 anchors.left: parent.left
@@ -521,6 +522,49 @@ Page {
                     leftPadding: vaultPinCallSignCheckbox.indicator.width + vaultPinCallSignCheckbox.spacing
                 }
             }
+            // --- message visible --
+            // Call Sign visible on vault pin (aku) m_callSignVisibleOnVaultPage
+            CheckBox {
+                id: messageEraseCheckbox
+                anchors.top: vaultPinCallSignCheckbox.bottom
+                anchors.topMargin: -5
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                text: qsTr("Erase messages on disconnect")
+                checked: eClass.messageEraseEnabled
+                onToggled: {
+                    if (checked !== eClass.messageEraseEnabled ) {
+                        eClass.setMessageEraseEnabled(messageEraseCheckbox.checkState)
+                    }
+                }
+                indicator: Rectangle {
+                    implicitWidth: 10
+                    implicitHeight: 10
+                    x: messageEraseCheckbox.leftPadding
+                    y: parent.height / 2 - height / 2
+                    radius: 2
+                    color: "transparent"
+                    border.color: eClass.mainColor
+
+                    Rectangle {
+                        width: 6
+                        height: 6
+                        x: 2
+                        y: 2
+                        radius: 2
+                        color: eClass.mainColor
+                        visible: messageEraseCheckbox.checked
+                    }
+                }
+                contentItem: Text {
+                    text: messageEraseCheckbox.text
+                    font.pointSize: 8
+                    opacity: enabled ? 1.0 : 0.3
+                    color: eClass.mainColor
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: messageEraseCheckbox.indicator.width + messageEraseCheckbox.spacing
+                }
+            }
 
 
             // ---
@@ -531,7 +575,7 @@ Page {
                 anchors.leftMargin: 5
                 height: 20
                 width: 140
-                anchors.top: vaultPinCallSignCheckbox.bottom
+                anchors.top: messageEraseCheckbox.bottom
                 anchors.topMargin: 10
                 padding: 1
                 font.pointSize: 10

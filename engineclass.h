@@ -148,6 +148,7 @@ class engineClass : public QObject
     Q_PROPERTY(bool cellDisplayEnabled READ lteCellDisplayEnabled WRITE setLteCellDisplayEnabled NOTIFY lteCellDisplayEnabledChanged)
     Q_PROPERTY(bool nightModeEnabled READ nightModeEnabled WRITE setNightModeEnabled NOTIFY nightModeEnabledChanged)
     Q_PROPERTY(bool callSignOnVaultEnabled READ callSignOnVaultEnabled WRITE setCallSignOnVaultEnabled NOTIFY callSignOnVaultEnabledChanged)
+    Q_PROPERTY(bool messageEraseEnabled READ messageEraseEnabled WRITE setMessageEraseEnabled NOTIFY messageEraseEnabledChanged)
     Q_PROPERTY(bool powerOffDialogVisible READ getPowerOffVisible() NOTIFY powerOffVisibleChanged)
     // Cellular info
     Q_PROPERTY(QString plmn READ getPlmn NOTIFY plmnChanged)
@@ -321,6 +322,8 @@ public:
 
     bool callSignOnVaultEnabled() const;
     Q_INVOKABLE void setCallSignOnVaultEnabled(bool newCallSignOnVaultEnabled);
+    Q_INVOKABLE void setMessageEraseEnabled(bool newMessageEraseEnabled);
+    bool messageEraseEnabled() const;
 
     Q_INVOKABLE QString getPlmn();
     Q_INVOKABLE QString getTa();
@@ -503,6 +506,7 @@ private:
     bool m_lteEnabled=false;
     bool m_nightModeEnabled=false;
     bool m_callSignVisibleOnVaultPage=false;
+    bool m_messageEraseEnabled=false;
 
     QString mPlmn;
     QString mTa;
@@ -710,6 +714,7 @@ signals:
     void layer2WifiChanged();
     void macsecValidChanged();
     void callSignOnVaultEnabledChanged();
+    void messageEraseEnabledChanged();
 };
 
 #endif // ENGINECLASS_H
