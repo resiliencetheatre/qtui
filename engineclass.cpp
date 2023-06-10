@@ -540,7 +540,7 @@ void engineClass::loadUserPreferences()
     // Some settings are required to be available before vault is open,
     // so we load them from PRE_VAULT_INI_FILE
     QSettings vaultPreferences(PRE_VAULT_INI_FILE,QSettings::IniFormat);
-    m_callSignVisibleOnVaultPage = vaultPreferences.value("vaultpagecallsign",false).toBool();
+    m_callSignVisibleOnVaultPage = vaultPreferences.value("vaultpagecallsign",true).toBool();
     emit callSignOnVaultEnabledChanged();
     m_messageEraseEnabled = vaultPreferences.value("msg_erase",true).toBool();
     emit messageEraseEnabledChanged();
