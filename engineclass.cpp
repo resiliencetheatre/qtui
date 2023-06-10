@@ -84,6 +84,8 @@
 #define SIDEBUTTON_KEY_DOWN     1
 #define IWD_MAIN_CONFIG_FILE    "/etc/iwd/main.conf"
 
+#define AUTOMATIC_SHUTDOWNTIME   600000 // 10 min
+
 engineClass::engineClass(QObject *parent)
     : QObject{parent}
 {
@@ -106,6 +108,9 @@ engineClass::engineClass(QObject *parent)
     proximityTimer = new QTimer();
     connect(proximityTimer, &QTimer::timeout, this, QOverload<>::of(&engineClass::proximityTimerTick));
     proximityTimer->start(2000);
+    automaticShutdownTimer = new QTimer();
+    connect(automaticShutdownTimer, &QTimer::timeout, this, QOverload<>::of(&engineClass::automaticShutdownTimeout));
+
     /* Power button, TODO: m_pwrButtonFileHandle close */
     QByteArray pwrButtonDevice = QByteArrayLiteral(PWR_GPIO_INPUT_PATH);
     m_pwrButtonFileHandle = open(pwrButtonDevice.constData(), O_RDONLY);
@@ -157,6 +162,12 @@ engineClass::engineClass(QObject *parent)
     mMacsecKeyValid = false;
     emit macsecValidChanged();
 }
+
+void engineClass::automaticShutdownTimeout()
+{
+    powerOff();
+}
+
 
 QString engineClass::appVersion()
 {
@@ -544,6 +555,13 @@ void engineClass::loadUserPreferences()
     emit callSignOnVaultEnabledChanged();
     m_messageEraseEnabled = vaultPreferences.value("msg_erase",true).toBool();
     emit messageEraseEnabledChanged();
+    m_automaticShutdownEnabled = vaultPreferences.value("automaticshutdown",true).toBool();
+    emit automaticShutdownEnabledChanged();
+    if (m_automaticShutdownEnabled) {
+        qDebug() << "Starting shutdown timer on ini read";
+        automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
+    }
+
 
     if ( m_nightModeEnabled ) {
                                     //  625 nm      Green           640 nm
@@ -585,6 +603,7 @@ void engineClass::saveUserPreferences()
 void engineClass::loadSettings()
 {
     if ( m_vaultModeActive ) {
+        automaticShutdownTimer->start( 60000 );
         QSettings vaultPreferences(PRE_VAULT_INI_FILE,QSettings::IniFormat);
         bool vaultPinDisplay = vaultPreferences.value("vaultpagecallsign",false).toBool();
         if ( vaultPinDisplay ) {
@@ -2809,6 +2828,10 @@ void engineClass::getWifiStatus()
 void engineClass::registerTouch()
 {
     m_screenTimeoutCounter = DEVICE_LOCK_TIME;
+    if (m_automaticShutdownEnabled) {
+        qDebug() << "re-Starting shutdown timer on touch register";
+        automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
+    }
 }
 
 void engineClass::getKnownWifiNetworks()
@@ -3071,6 +3094,28 @@ void engineClass::setMessageEraseEnabled(bool newMessageEraseEnabled)
     QSettings settings(PRE_VAULT_INI_FILE,QSettings::IniFormat);
     settings.setValue("msg_erase", m_messageEraseEnabled);
 }
+
+// automaticShutdownEnabled
+bool engineClass::automaticShutdownEnabled() const
+{
+    return m_automaticShutdownEnabled;
+}
+
+void engineClass::setAutomaticShutdownEnabled(bool newAutomaticShutdownEnabled)
+{
+    if (m_automaticShutdownEnabled == newAutomaticShutdownEnabled)
+        return;
+    m_automaticShutdownEnabled = newAutomaticShutdownEnabled;
+    emit automaticShutdownEnabledChanged();
+    QSettings settings(PRE_VAULT_INI_FILE,QSettings::IniFormat);
+    settings.setValue("automaticshutdown", m_automaticShutdownEnabled);
+    if (m_automaticShutdownEnabled) {
+        qDebug() << "Starting shutdown timer on setAutomaticShutdownEnabled() ";
+        automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
+    }
+}
+
+
 
 
 QString engineClass::getPlmn() {

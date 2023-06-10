@@ -149,6 +149,7 @@ class engineClass : public QObject
     Q_PROPERTY(bool nightModeEnabled READ nightModeEnabled WRITE setNightModeEnabled NOTIFY nightModeEnabledChanged)
     Q_PROPERTY(bool callSignOnVaultEnabled READ callSignOnVaultEnabled WRITE setCallSignOnVaultEnabled NOTIFY callSignOnVaultEnabledChanged)
     Q_PROPERTY(bool messageEraseEnabled READ messageEraseEnabled WRITE setMessageEraseEnabled NOTIFY messageEraseEnabledChanged)
+    Q_PROPERTY(bool automaticShutdownEnabled READ automaticShutdownEnabled WRITE setAutomaticShutdownEnabled NOTIFY automaticShutdownEnabledChanged)
     Q_PROPERTY(bool powerOffDialogVisible READ getPowerOffVisible() NOTIFY powerOffVisibleChanged)
     // Cellular info
     Q_PROPERTY(QString plmn READ getPlmn NOTIFY plmnChanged)
@@ -175,7 +176,6 @@ class engineClass : public QObject
     Q_PROPERTY(bool macsecPttEnabled READ getMacsecPttEnabled WRITE setMacsecPttEnabled NOTIFY macsecPttEnabledChanged)
     Q_PROPERTY(QString macsecKeyed READ getMacsecKeyed NOTIFY macsecKeyedChanged)
     Q_PROPERTY(bool layer2Wifi READ getLayer2Wifi WRITE setLayer2Wifi NOTIFY layer2WifiChanged)
-
     Q_PROPERTY(bool macsecValid READ getMacsecValid NOTIFY macsecValidChanged)
 
 public:
@@ -324,6 +324,9 @@ public:
     Q_INVOKABLE void setCallSignOnVaultEnabled(bool newCallSignOnVaultEnabled);
     Q_INVOKABLE void setMessageEraseEnabled(bool newMessageEraseEnabled);
     bool messageEraseEnabled() const;
+
+    Q_INVOKABLE void setAutomaticShutdownEnabled(bool newAutomaticShutdownEnabled);
+    bool automaticShutdownEnabled() const;
 
     Q_INVOKABLE QString getPlmn();
     Q_INVOKABLE QString getTa();
@@ -507,6 +510,7 @@ private:
     bool m_nightModeEnabled=false;
     bool m_callSignVisibleOnVaultPage=false;
     bool m_messageEraseEnabled=false;
+    bool m_automaticShutdownEnabled=false;
 
     QString mPlmn;
     QString mTa;
@@ -544,6 +548,7 @@ private:
     QString mMacsecKeyed;
     bool mLayer2WifiEnabled;
     bool mMacsecKeyValid;
+    QTimer *automaticShutdownTimer;
 
 
 
@@ -593,6 +598,7 @@ private slots:
     void countNukeTimer();
     QString getDefaultRoute();
     void loadApnName();
+    void automaticShutdownTimeout();
 
 signals:
     void peer_0_NameChanged();
@@ -715,6 +721,8 @@ signals:
     void macsecValidChanged();
     void callSignOnVaultEnabledChanged();
     void messageEraseEnabledChanged();
+    void automaticShutdownEnabledChanged();
+
 };
 
 #endif // ENGINECLASS_H

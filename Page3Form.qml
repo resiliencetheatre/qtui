@@ -29,7 +29,7 @@ Page {
     Flickable {
         anchors.fill: parent
         contentWidth: parent.width
-        contentHeight: 600
+        contentHeight: 650
         clip: true
 
 
@@ -565,9 +565,47 @@ Page {
                     leftPadding: messageEraseCheckbox.indicator.width + messageEraseCheckbox.spacing
                 }
             }
+            CheckBox {
+                id: automaticShutdownCheckbox
+                anchors.top: messageEraseCheckbox.bottom
+                anchors.topMargin: -5
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                text: qsTr("Automatic shutdown in 10 minutes")
+                checked: eClass.automaticShutdownEnabled
+                onToggled: {
+                    if (checked !== eClass.automaticShutdownEnabled ) {
+                        eClass.setAutomaticShutdownEnabled(automaticShutdownCheckbox.checkState)
+                    }
+                }
+                indicator: Rectangle {
+                    implicitWidth: 10
+                    implicitHeight: 10
+                    x: automaticShutdownCheckbox.leftPadding
+                    y: parent.height / 2 - height / 2
+                    radius: 2
+                    color: "transparent"
+                    border.color: eClass.mainColor
 
-
-            // ---
+                    Rectangle {
+                        width: 6
+                        height: 6
+                        x: 2
+                        y: 2
+                        radius: 2
+                        color: eClass.mainColor
+                        visible: automaticShutdownCheckbox.checked
+                    }
+                }
+                contentItem: Text {
+                    text: automaticShutdownCheckbox.text
+                    font.pointSize: 8
+                    opacity: enabled ? 1.0 : 0.3
+                    color: eClass.mainColor
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: automaticShutdownCheckbox.indicator.width + automaticShutdownCheckbox.spacing
+                }
+            }
 
             Label {
                 id: connectivityTitle
@@ -575,7 +613,7 @@ Page {
                 anchors.leftMargin: 5
                 height: 20
                 width: 140
-                anchors.top: messageEraseCheckbox.bottom
+                anchors.top: automaticShutdownCheckbox.bottom
                 anchors.topMargin: 10
                 padding: 1
                 font.pointSize: 10
@@ -975,10 +1013,10 @@ Page {
             Button {
                 id: aboutButton
                 anchors.horizontalCenter: parent.horizontalCenter
-                // anchors.top: nightModeCheckbox.bottom
-                // anchors.topMargin: 50
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 20
+                anchors.top: keyloadHelpText.bottom
+                anchors.topMargin: 20
+                // anchors.bottom: parent.bottom
+                // anchors.bottomMargin: 20
 
                 width: 20
                 height: 20
@@ -1014,6 +1052,7 @@ Page {
                 width: 50
                 anchors.top: aboutButton.bottom
                 anchors.topMargin: 5
+                anchors.bottomMargin: 20
                 anchors.horizontalCenter: parent.horizontalCenter
                 padding: 1
                 font.pointSize: 6
