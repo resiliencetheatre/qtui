@@ -45,7 +45,7 @@ ApplicationWindow {
         color: "transparent"
         width: 30
         height: 12
-        x: 10
+        x: 0
         y: 0
         Text {
             id: titleLabelText
@@ -64,7 +64,7 @@ ApplicationWindow {
         id: callSignLabel
         color: "transparent"
         visible: true
-        x: 70
+        x: 60
         y: 0
         width: 30
         height: 12

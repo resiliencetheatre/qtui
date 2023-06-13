@@ -508,7 +508,7 @@ private:
     bool m_deepSleepEnabled=false;
     bool m_lteEnabled=false;
     bool m_nightModeEnabled=false;
-    bool m_callSignVisibleOnVaultPage=false;
+    bool m_callSignVisibleOnVaultPage=true;
     bool m_messageEraseEnabled=false;
     bool m_automaticShutdownEnabled=false;
 
