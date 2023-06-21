@@ -18,7 +18,6 @@
 
     TODO:
     ---------------------------------------------------------------------
-    [ ]     Audio volume: mixer names setting or detection
     [ ]     Wifi SSID's with spaces do not work
 
     NOTE:   If you turn LTE modem off with DIP switches, adjust /root/utils/cell.sh
@@ -1006,16 +1005,12 @@ Signal information
 
     // Stop shutdown timer if connection is active
     if ( g_connectState && m_automaticShutdownEnabled && automaticShutdownTimer->isActive() ) {
-        qDebug() << "Stopping shutdown timer for connection";
         automaticShutdownTimer->stop();
     }
     // Start shutdown timer if connection is inactive
     if ( !g_connectState && m_automaticShutdownEnabled && !automaticShutdownTimer->isActive() ) {
-        qDebug() << "Starting shutdown timer after connection is lost";
         automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
     }
-
-
 }
 
 /* Read dpinger service output file for peers */
