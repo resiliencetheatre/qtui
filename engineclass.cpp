@@ -558,7 +558,6 @@ void engineClass::loadUserPreferences()
     m_automaticShutdownEnabled = vaultPreferences.value("automaticshutdown",true).toBool();
     emit automaticShutdownEnabledChanged();
     if (m_automaticShutdownEnabled) {
-        qDebug() << "Starting shutdown timer on ini read";
         automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
     }
 
@@ -603,7 +602,7 @@ void engineClass::saveUserPreferences()
 void engineClass::loadSettings()
 {
     if ( m_vaultModeActive ) {
-        automaticShutdownTimer->start( 60000 );
+        automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
         QSettings vaultPreferences(PRE_VAULT_INI_FILE,QSettings::IniFormat);
         bool vaultPinDisplay = vaultPreferences.value("vaultpagecallsign",false).toBool();
         if ( vaultPinDisplay ) {
@@ -1004,6 +1003,19 @@ Signal information
         lockDevice(LOCK_DEVICE);
     }
     peerLatency();
+
+    // Stop shutdown timer if connection is active
+    if ( g_connectState && m_automaticShutdownEnabled && automaticShutdownTimer->isActive() ) {
+        qDebug() << "Stopping shutdown timer for connection";
+        automaticShutdownTimer->stop();
+    }
+    // Start shutdown timer if connection is inactive
+    if ( !g_connectState && m_automaticShutdownEnabled && !automaticShutdownTimer->isActive() ) {
+        qDebug() << "Starting shutdown timer after connection is lost";
+        automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
+    }
+
+
 }
 
 /* Read dpinger service output file for peers */
@@ -2829,7 +2841,6 @@ void engineClass::registerTouch()
 {
     m_screenTimeoutCounter = DEVICE_LOCK_TIME;
     if (m_automaticShutdownEnabled) {
-        qDebug() << "re-Starting shutdown timer on touch register";
         automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
     }
 }
@@ -3110,7 +3121,6 @@ void engineClass::setAutomaticShutdownEnabled(bool newAutomaticShutdownEnabled)
     QSettings settings(PRE_VAULT_INI_FILE,QSettings::IniFormat);
     settings.setValue("automaticshutdown", m_automaticShutdownEnabled);
     if (m_automaticShutdownEnabled) {
-        qDebug() << "Starting shutdown timer on setAutomaticShutdownEnabled() ";
         automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
     }
 }
