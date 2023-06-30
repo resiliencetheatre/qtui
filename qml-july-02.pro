@@ -1,4 +1,3 @@
-# QT += quick virtualkeyboard quickcontrols2 23.8.2022 07:16 disabled
 QT += virtualkeyboard quickcontrols2
 QT += qml
 
@@ -17,7 +16,7 @@ RESOURCES += qml.qrc
 # Additional import path used to resolve QML modules just for Qt Quick Designer
 # QML_DESIGNER_IMPORT_PATH =
 
-VERSION = v0.7
+VERSION = v0.71
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
 CONFIG += qml_debug

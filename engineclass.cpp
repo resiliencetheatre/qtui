@@ -84,6 +84,7 @@
 #define IWD_MAIN_CONFIG_FILE    "/etc/iwd/main.conf"
 
 #define AUTOMATIC_SHUTDOWNTIME   600000 // 10 min
+#define AUTOMATIC_SHUTDOWNTIME_IN_VAULT_MODE   60000 // 1 min
 
 engineClass::engineClass(QObject *parent)
     : QObject{parent}
@@ -100,6 +101,7 @@ engineClass::engineClass(QObject *parent)
 
     QTimer::singleShot(2 * 1000, this, SLOT(loadSettings()));
     QTimer::singleShot(4 * 1000, this, SLOT(initEngine()));
+
     /* environment and proximity evaluation timers */
     envTimer = new QTimer();
     connect(envTimer, &QTimer::timeout, this, QOverload<>::of(&engineClass::envTimerTick));
@@ -601,7 +603,7 @@ void engineClass::saveUserPreferences()
 void engineClass::loadSettings()
 {
     if ( m_vaultModeActive ) {
-        automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
+        automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME_IN_VAULT_MODE );
         QSettings vaultPreferences(PRE_VAULT_INI_FILE,QSettings::IniFormat);
         bool vaultPinDisplay = vaultPreferences.value("vaultpagecallsign",false).toBool();
         if ( vaultPinDisplay ) {
@@ -2835,7 +2837,7 @@ void engineClass::getWifiStatus()
 void engineClass::registerTouch()
 {
     m_screenTimeoutCounter = DEVICE_LOCK_TIME;
-    if (m_automaticShutdownEnabled) {
+    if ( !g_connectState && m_automaticShutdownEnabled ) {
         automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
     }
 }
@@ -3117,6 +3119,9 @@ void engineClass::setAutomaticShutdownEnabled(bool newAutomaticShutdownEnabled)
     settings.setValue("automaticshutdown", m_automaticShutdownEnabled);
     if (m_automaticShutdownEnabled) {
         automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
+    }
+    if (!m_automaticShutdownEnabled) {
+        automaticShutdownTimer->stop();
     }
 }
 
