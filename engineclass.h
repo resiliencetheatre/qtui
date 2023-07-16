@@ -177,6 +177,8 @@ class engineClass : public QObject
     Q_PROPERTY(QString macsecKeyed READ getMacsecKeyed NOTIFY macsecKeyedChanged)
     Q_PROPERTY(bool layer2Wifi READ getLayer2Wifi WRITE setLayer2Wifi NOTIFY layer2WifiChanged)
     Q_PROPERTY(bool macsecValid READ getMacsecValid NOTIFY macsecValidChanged)
+    // busy indicator
+    Q_PROPERTY(bool busyIndicator READ getBusyIndicator NOTIFY busyIndicatorChanged)
 
 public:
     explicit engineClass(QObject *parent = nullptr);
@@ -357,6 +359,7 @@ public:
     bool getLayer2Wifi();
     Q_INVOKABLE void setLayer2Wifi(bool newLayer2Value);
     Q_INVOKABLE bool getMacsecValid();
+    Q_INVOKABLE bool getBusyIndicator();
 
 
 private:
@@ -549,7 +552,7 @@ private:
     bool mLayer2WifiEnabled;
     bool mMacsecKeyValid;
     QTimer *automaticShutdownTimer;
-
+    bool m_busyIndicatorActive;
 
 
 public slots:
@@ -722,6 +725,7 @@ signals:
     void callSignOnVaultEnabledChanged();
     void messageEraseEnabledChanged();
     void automaticShutdownEnabledChanged();
+    void busyIndicatorChanged();
 
 };
 

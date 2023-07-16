@@ -22,6 +22,8 @@ import QtQuick.Window 2.15
 import QtQuick.VirtualKeyboard 2.15
 import QtQuick.Controls 2.5
 import QtQuick.Controls.Material 2.15
+import QtQuick.Layouts 1.15
+
 
 ApplicationWindow {
     id: window
@@ -285,6 +287,119 @@ ApplicationWindow {
                 font.pointSize: 6
                 font.bold: true
                 anchors.centerIn: parent
+            }
+        }
+
+        // Tumbler for vault selection (work in progress)
+        Tumbler {
+            id: control
+            model: 5
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            background: Item {
+                Rectangle {
+                    opacity: control.enabled ? 0.2 : 0.1
+                    border.color: "#000000"
+                    width: parent.width
+                    height: 1
+                    anchors.top: parent.top
+                    anchors.topMargin: 100
+                }
+
+                Rectangle {
+                    opacity: control.enabled ? 0.2 : 0.1
+                    border.color: "#000000"
+                    width: parent.width
+                    height: 1
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 400
+                }
+            }
+
+            delegate: Text {
+                text: qsTr("Vault %1").arg(modelData + 1)
+                font.pointSize: 10
+                color: "#00FF00"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                opacity: 1.0 - Math.abs(Tumbler.displacement) / (control.visibleItemCount / 5)
+            }
+
+            Rectangle {
+                anchors.horizontalCenter: control.horizontalCenter
+                y: control.height * 0.4
+                width: 140
+                height: 1
+                color: "#00FF00"
+            }
+
+            Rectangle {
+                anchors.horizontalCenter: control.horizontalCenter
+                y: control.height * 0.6
+                width: 140
+                height: 1
+                color: "#00FF00"
+            }
+        }
+
+        // Busy indication
+        BusyIndicator {
+            id: busyIndicator
+            running: eClass.busyIndicator
+            visible: eClass.busyIndicator
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 140
+            contentItem: Item {
+                implicitWidth: 50
+                implicitHeight: 50
+
+                Item {
+                    id: item
+                    x: parent.width / 2 - 32
+                    y: parent.height / 2 - 32
+                    width: 64
+                    height: 64
+                    opacity: busyIndicator.running ? 1 : 0
+
+                    Behavior on opacity {
+                        OpacityAnimator {
+                            duration: 250
+                        }
+                    }
+
+                    RotationAnimator {
+                        target: item
+                        running: busyIndicator.visible && busyIndicator.running
+                        from: 0
+                        to: 360
+                        loops: Animation.Infinite
+                        duration: 3000
+                    }
+
+                    Repeater {
+                        id: repeater
+                        model: 6
+
+                        Rectangle {
+                            x: item.width / 2 - width / 2
+                            y: item.height / 2 - height / 2
+                            implicitWidth: 10
+                            implicitHeight: 10
+                            radius: 5
+                            color: "#5b5b5b"
+                            transform: [
+                                Translate {
+                                    y: -Math.min(item.width, item.height) * 0.5 + 5
+                                },
+                                Rotation {
+                                    angle: index / repeater.count * 360
+                                    origin.x: 5
+                                    origin.y: 5
+                                }
+                            ]
+                        }
+                    }
+                }
             }
         }
 

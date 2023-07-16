@@ -162,6 +162,8 @@ engineClass::engineClass(QObject *parent)
     emit macsecKeyedChanged();
     mMacsecKeyValid = false;
     emit macsecValidChanged();
+    m_busyIndicatorActive = false;
+    emit busyIndicatorChanged();
 }
 
 void engineClass::automaticShutdownTimeout()
@@ -2308,9 +2310,11 @@ void engineClass::onVaultProcessReadyReadStdOutput()
        m_vaultNotifyText = "SUCCESS";
        m_vaultNotifyColor = "green";
        m_vaultNotifyTextColor = "white";
+       m_busyIndicatorActive = false;
        emit vaultScreenNotifyTextChanged();
        emit vaultScreenNotifyColorChanged();
        emit vaultScreenNotifyTextColorChanged();
+       emit busyIndicatorChanged();
        QTimer::singleShot(4 * 1000, this, SLOT(exitVaultOpenProcess()));
     }
 }
@@ -2338,9 +2342,11 @@ void engineClass::onVaultProcessFinished()
         m_vaultNotifyText = "FAILED";
         m_vaultNotifyColor = "red";
         m_vaultNotifyTextColor = "white";
+        m_busyIndicatorActive = false;
         emit vaultScreenNotifyTextChanged();
         emit vaultScreenNotifyColorChanged();
         emit vaultScreenNotifyTextColorChanged();
+        emit busyIndicatorChanged();
         QTimer::singleShot(5 * 1000, this, SLOT(exitVaultOpenProcessWithFail()));
     }
 }
@@ -2366,9 +2372,11 @@ int engineClass::lockNumberEntry(int pinCodeNumber)
                 m_vaultNotifyText = "CHECKING";
                 m_vaultNotifyColor = "yellow";
                 m_vaultNotifyTextColor = "red";
+                m_busyIndicatorActive = true;
                 emit vaultScreenNotifyTextChanged();
                 emit vaultScreenNotifyColorChanged();
                 emit vaultScreenNotifyTextColorChanged();
+                emit busyIndicatorChanged();
                 m_lockScreenPinCode="••••";
                 emit lockScreenPinCodeChanged();
                 vaultOpenProcess.setProgram("/bin/vault-pin.sh");
@@ -3000,6 +3008,11 @@ void engineClass::setLayer2Wifi(bool newLayer2Value)
 bool engineClass::getMacsecValid()
 {
     return mMacsecKeyValid;
+}
+
+bool engineClass::getBusyIndicator()
+{
+    return m_busyIndicatorActive;
 }
 
 // Load APN from file and default to 'internet' if no file is present
