@@ -613,7 +613,7 @@ void engineClass::loadSettings()
             m_vaultNotifyText = "ENTER VAULT PIN [ " + vaultMyCallSign + " ]";
             emit vaultScreenNotifyTextChanged();
         } else {
-            m_vaultNotifyText = "ENTER VAULT PIN";
+            m_vaultNotifyText = "SELECT VAULT & INPUT PIN";
             emit vaultScreenNotifyTextChanged();
         }
         m_vaultNotifyColor = "red";
