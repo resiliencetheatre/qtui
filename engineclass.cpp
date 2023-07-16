@@ -2326,7 +2326,7 @@ void engineClass::exitVaultOpenProcess()
 void engineClass::exitVaultOpenProcessWithFail()
 {
     m_lockScreenPinCode="";
-    m_vaultNotifyText = "ENTER VAULT PIN";
+    m_vaultNotifyText = "SELECT VAULT & INPUT PIN";
     m_vaultNotifyColor = "red";
     m_vaultNotifyTextColor = "white";
     emit lockScreenPinCodeChanged();

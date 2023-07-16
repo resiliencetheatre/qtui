@@ -16,6 +16,8 @@ RESOURCES += qml.qrc
 # Additional import path used to resolve QML modules just for Qt Quick Designer
 # QML_DESIGNER_IMPORT_PATH =
 
+TARGET = oobcomm
+
 VERSION = v0.71
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
