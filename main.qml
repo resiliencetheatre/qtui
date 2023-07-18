@@ -295,7 +295,7 @@ ApplicationWindow {
             id: control
             model: 5
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: eClass.vaultScreen_active
+            visible: false // eClass.vaultScreen_active
 
             background: Item {
                 Rectangle {
