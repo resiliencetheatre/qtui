@@ -361,6 +361,7 @@ public:
     Q_INVOKABLE bool getMacsecValid();
     Q_INVOKABLE bool getBusyIndicator();
 
+    Q_INVOKABLE void setVaultId(int vaultIndex);
 
 private:
     QString m_peer_0_CallSign="";
@@ -553,6 +554,7 @@ private:
     bool mMacsecKeyValid;
     QTimer *automaticShutdownTimer;
     bool m_busyIndicatorActive;
+    int m_vaultIndex=0;
 
 
 public slots:

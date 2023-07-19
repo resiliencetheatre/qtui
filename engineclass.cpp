@@ -2379,8 +2379,8 @@ int engineClass::lockNumberEntry(int pinCodeNumber)
                 emit busyIndicatorChanged();
                 m_lockScreenPinCode="••••";
                 emit lockScreenPinCodeChanged();
-                vaultOpenProcess.setProgram("/bin/vault-pin.sh");
-                vaultOpenProcess.setArguments({vaultPinCode});
+                vaultOpenProcess.setProgram("/bin/vault-pin.sh");   // todo:
+                vaultOpenProcess.setArguments({vaultPinCode, QString::number(m_vaultIndex) });
                 vaultOpenProcess.start();
             } else {
                 m_lockScreenPinCode="";
@@ -3013,6 +3013,12 @@ bool engineClass::getMacsecValid()
 bool engineClass::getBusyIndicator()
 {
     return m_busyIndicatorActive;
+}
+
+// Get vault index from vault pin page
+void engineClass::setVaultId(int vaultIndex)
+{
+    m_vaultIndex = vaultIndex;
 }
 
 // Load APN from file and default to 'internet' if no file is present

@@ -292,11 +292,12 @@ ApplicationWindow {
 
         // Tumbler for vault selection (work in progress)
         Tumbler {
+            property alias vaultIndex: control.currentIndex
             id: control
-            model: 5
+            model: 3
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: false // eClass.vaultScreen_active
-
+            visible: eClass.vaultScreen_active
+            onCurrentIndexChanged: eClass.setVaultId(vaultIndex)
             background: Item {
                 Rectangle {
                     opacity: control.enabled ? 0.2 : 0.1
