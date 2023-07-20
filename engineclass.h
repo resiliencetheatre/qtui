@@ -323,6 +323,7 @@ public:
     bool lteCellDisplayEnabled() const;
     Q_INVOKABLE void setLteCellDisplayEnabled(bool newLteCellDisplayEnabled);
     Q_INVOKABLE void apnSaveButton(QString apn);
+    Q_INVOKABLE void switchVaultButton();
     bool nightModeEnabled() const;
     void setNightModeEnabled(bool newNightModeEnabled);
     Q_INVOKABLE void changeNightModeEnabled(bool newNightModeEnabled);
@@ -333,7 +334,7 @@ public:
     bool messageEraseEnabled() const;
 
     Q_INVOKABLE void setAutomaticShutdownEnabled(bool newAutomaticShutdownEnabled);
-    bool automaticShutdownEnabled() const;
+    bool automaticShutdownEnabled();
 
     Q_INVOKABLE QString getPlmn();
     Q_INVOKABLE QString getTa();

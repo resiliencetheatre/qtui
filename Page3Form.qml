@@ -32,8 +32,6 @@ Page {
         contentHeight: 650
         clip: true
 
-
-        // ****
         Item {
             id: settingsFrame
             anchors.fill: parent
@@ -393,55 +391,13 @@ Page {
                 }
             }
 
-            // Checkbox (this was hard for me to understand)
-            CheckBox {
-                id: deepSleepCheckbox
-                enabled: false
-                anchors.top: powerSaveTitle.bottom
-                anchors.topMargin: 5
-                anchors.left: parent.left
-                anchors.leftMargin: 10
-                text: qsTr("deep sleep on screen lock")
-                checked: eClass.deepSleepEnabled
-                onCheckedChanged: {
-                    if (checked !== eClass.deepSleepEnabled ) {
-                        eClass.changeDeepSleepEnabled(deepSleepCheckbox.checkState)
-                    }
-                }
-                indicator: Rectangle {
-                    implicitWidth: 10
-                    implicitHeight: 10
-                    x: deepSleepCheckbox.leftPadding
-                    y: parent.height / 2 - height / 2
-                    radius: 2
-                    color: "transparent"
-                    border.color: eClass.mainColor
 
-                    Rectangle {
-                        width: 6
-                        height: 6
-                        x: 2
-                        y: 2
-                        radius: 2
-                        color: eClass.mainColor
-                        visible: deepSleepCheckbox.checked
-                    }
-                }
-                contentItem: Text {
-                    text: deepSleepCheckbox.text
-                    font.pointSize: 8
-                    opacity: enabled ? 1.0 : 0.3
-                    color: eClass.mainColor
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: deepSleepCheckbox.indicator.width + deepSleepCheckbox.spacing
-                }
-            }
 
             // Night mode
             CheckBox {
                 id: nightModeCheckbox
-                anchors.top: deepSleepCheckbox.bottom
-                anchors.topMargin: -5
+                anchors.top: powerSaveTitle.bottom
+                anchors.topMargin: 5
                 anchors.left: parent.left
                 anchors.leftMargin: 10
                 text: qsTr("Night mode")
@@ -480,53 +436,9 @@ Page {
                 }
             }
 
-            // Call Sign visible on vault pin (aku) m_callSignVisibleOnVaultPage
-            CheckBox {
-                id: vaultPinCallSignCheckbox
-                anchors.top: nightModeCheckbox.bottom
-                anchors.topMargin: -5
-                anchors.left: parent.left
-                anchors.leftMargin: 10
-                text: qsTr("Call sign on vault pin page")
-                checked: eClass.callSignOnVaultEnabled
-                onToggled: {
-                    if (checked !== eClass.callSignOnVaultEnabled ) {
-                        eClass.setCallSignOnVaultEnabled(vaultPinCallSignCheckbox.checkState)
-                    }
-                }
-                indicator: Rectangle {
-                    implicitWidth: 10
-                    implicitHeight: 10
-                    x: vaultPinCallSignCheckbox.leftPadding
-                    y: parent.height / 2 - height / 2
-                    radius: 2
-                    color: "transparent"
-                    border.color: eClass.mainColor
-
-                    Rectangle {
-                        width: 6
-                        height: 6
-                        x: 2
-                        y: 2
-                        radius: 2
-                        color: eClass.mainColor
-                        visible: vaultPinCallSignCheckbox.checked
-                    }
-                }
-                contentItem: Text {
-                    text: vaultPinCallSignCheckbox.text
-                    font.pointSize: 8
-                    opacity: enabled ? 1.0 : 0.3
-                    color: eClass.mainColor
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: vaultPinCallSignCheckbox.indicator.width + vaultPinCallSignCheckbox.spacing
-                }
-            }
-            // --- message visible --
-            // Call Sign visible on vault pin (aku) m_callSignVisibleOnVaultPage
             CheckBox {
                 id: messageEraseCheckbox
-                anchors.top: vaultPinCallSignCheckbox.bottom
+                anchors.top: nightModeCheckbox.bottom
                 anchors.topMargin: -5
                 anchors.left: parent.left
                 anchors.leftMargin: 10
@@ -604,6 +516,95 @@ Page {
                     color: eClass.mainColor
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: automaticShutdownCheckbox.indicator.width + automaticShutdownCheckbox.spacing
+                }
+            }
+            /* Two disabled checkbox */
+            // Checkbox (this was hard for me to understand)
+            CheckBox {
+                id: deepSleepCheckbox
+                enabled: false
+                visible: false
+                anchors.top: powerSaveTitle.bottom
+                anchors.topMargin: 5
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                text: qsTr("deep sleep on screen lock")
+                checked: eClass.deepSleepEnabled
+                onCheckedChanged: {
+                    if (checked !== eClass.deepSleepEnabled ) {
+                        eClass.changeDeepSleepEnabled(deepSleepCheckbox.checkState)
+                    }
+                }
+                indicator: Rectangle {
+                    implicitWidth: 10
+                    implicitHeight: 10
+                    x: deepSleepCheckbox.leftPadding
+                    y: parent.height / 2 - height / 2
+                    radius: 2
+                    color: "transparent"
+                    border.color: eClass.mainColor
+
+                    Rectangle {
+                        width: 6
+                        height: 6
+                        x: 2
+                        y: 2
+                        radius: 2
+                        color: eClass.mainColor
+                        visible: deepSleepCheckbox.checked
+                    }
+                }
+                contentItem: Text {
+                    text: deepSleepCheckbox.text
+                    font.pointSize: 8
+                    opacity: enabled ? 1.0 : 0.3
+                    color: eClass.mainColor
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: deepSleepCheckbox.indicator.width + deepSleepCheckbox.spacing
+                }
+            }
+            // Call Sign visible on vault pin (disabled)
+            CheckBox {
+                id: vaultPinCallSignCheckbox
+                enabled: false
+                visible: false
+                anchors.top: nightModeCheckbox.bottom
+                anchors.topMargin: -5
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                text: qsTr("Call sign on vault pin page")
+                checked: eClass.callSignOnVaultEnabled
+                onToggled: {
+                    if (checked !== eClass.callSignOnVaultEnabled ) {
+                        eClass.setCallSignOnVaultEnabled(vaultPinCallSignCheckbox.checkState)
+                    }
+                }
+                indicator: Rectangle {
+                    implicitWidth: 10
+                    implicitHeight: 10
+                    x: vaultPinCallSignCheckbox.leftPadding
+                    y: parent.height / 2 - height / 2
+                    radius: 2
+                    color: "transparent"
+                    border.color: eClass.mainColor
+
+                    Rectangle {
+                        width: 6
+                        height: 6
+                        x: 2
+                        y: 2
+                        radius: 2
+                        color: eClass.mainColor
+                        visible: vaultPinCallSignCheckbox.checked
+                    }
+                }
+                contentItem: Text {
+                    text: vaultPinCallSignCheckbox.text
+                    font.pointSize: 8
+                    opacity: enabled ? 1.0 : 0.3
+                    color: eClass.mainColor
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: vaultPinCallSignCheckbox.indicator.width + vaultPinCallSignCheckbox.spacing
                 }
             }
 
@@ -1009,15 +1010,91 @@ Page {
                 color: eClass.dimColor
             }
 
+            // Vault switch (work in progress, disabled still)
+            Label {
+                id: vaultChangeTitle
+                visible: false
+                anchors.left: parent.left
+                anchors.leftMargin: 5
+                height: 20
+                width: 140
+                anchors.top: keyloadHelpText.bottom
+                anchors.topMargin: 15
+                padding: 1
+                font.pointSize: 10
+                text: qsTr("Vault switching")
+                color: eClass.mainColor
+            }
+            Rectangle {
+                visible: false
+                height: 1
+                gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: eClass.mainColor }
+                        GradientStop { position: 1.0; color: "#000000"  }
+                }
+                anchors {
+                    top: vaultChangeTitle.bottom
+                     left: parent.left
+                     right: parent.right
+                     leftMargin: 5
+                     rightMargin: 5
+                     topMargin: 1
+                     bottomMargin: 1
+                }
+            }
+            Label {
+                visible: false
+                id: vaultSwitchText
+                anchors.left: parent.left
+                anchors.leftMargin: 15
+                height: 15
+                width: 140
+                anchors.top: vaultChangeTitle.bottom
+                anchors.topMargin: 5
+                padding: 1
+                font.pointSize: 6
+                text: qsTr("Switch vault file to be used.")
+                color: eClass.dimColor
+            }
+            Button {
+                visible: false
+                id: vaultChangeButton
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: vaultSwitchText.bottom
+                anchors.topMargin: 10
+                width: 170
+                height: 20
+                text: "Switch vaults"
+                font.pointSize: 8
+                checkable: false
+                onClicked: {
+                    eClass.switchVaultButton()
+                }
+                contentItem: Text {
+                    text: parent.text
+                    font: parent.font
+                    opacity: enabled ? 1.0 : 0.3
+                    color: eClass.mainColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+                background: Rectangle {
+                    anchors.fill: parent
+                    color: parent.down ? eClass.dimColor : "#000"
+                    opacity: enabled ? 1 : 0.3
+                    border.color: parent.down ? eClass.mainColor : eClass.dimColor
+                    radius: 2
+                }
+            }
+
             // About button
             Button {
                 id: aboutButton
                 anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: keyloadHelpText.bottom
+                anchors.top: keyloadHelpText.bottom // vaultChangeButton
                 anchors.topMargin: 20
-                // anchors.bottom: parent.bottom
-                // anchors.bottomMargin: 20
-
                 width: 20
                 height: 20
                 text: "i"

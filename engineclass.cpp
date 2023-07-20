@@ -1034,6 +1034,7 @@ Signal information
     if ( !g_connectState && m_automaticShutdownEnabled && !automaticShutdownTimer->isActive() ) {
         automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME );
     }
+
 }
 
 /* Read dpinger service output file for peers */
@@ -3042,8 +3043,13 @@ bool engineClass::getBusyIndicator()
 // Get vault index from vault pin page
 void engineClass::setVaultId(int vaultIndex)
 {
-    automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME_IN_VAULT_MODE );
     m_vaultIndex = vaultIndex;
+}
+
+void engineClass::switchVaultButton()
+{
+    qDebug() << "Switch vault button";
+    runExternalCmd("/bin/systemctl", {"start", "vault-pin"});
 }
 
 // Load APN from file and default to 'internet' if no file is present
@@ -3148,7 +3154,7 @@ void engineClass::setMessageEraseEnabled(bool newMessageEraseEnabled)
 }
 
 // automaticShutdownEnabled
-bool engineClass::automaticShutdownEnabled() const
+bool engineClass::automaticShutdownEnabled()
 {
     return m_automaticShutdownEnabled;
 }
