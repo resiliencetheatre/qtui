@@ -59,6 +59,8 @@
 #define TELEMETRY_FIFO_IN       "/tmp/telemetry_fifo_in"
 #define TELEMETRY_FIFO_OUT      "/tmp/telemetry_fifo_out"
 #define MESSAGE_RECEIVE_FIFO    "/tmp/message_fifo_out"
+#define VAULT_SELECTOR_INI_FILE "/mnt/vaults.ini"
+
 #define NODECOUNT               10
 #define CONNPOINTCOUNT          3
 #define INDICATE_ONLY           0
@@ -84,7 +86,7 @@
 #define IWD_MAIN_CONFIG_FILE    "/etc/iwd/main.conf"
 
 #define AUTOMATIC_SHUTDOWNTIME   600000 // 10 min
-#define AUTOMATIC_SHUTDOWNTIME_IN_VAULT_MODE   60000 // 1 min
+#define AUTOMATIC_SHUTDOWNTIME_IN_VAULT_MODE   120000 // 2 min
 
 engineClass::engineClass(QObject *parent)
     : QObject{parent}
@@ -164,6 +166,8 @@ engineClass::engineClass(QObject *parent)
     emit macsecValidChanged();
     m_busyIndicatorActive = false;
     emit busyIndicatorChanged();
+
+    loadVaultPreferences();
 }
 
 void engineClass::automaticShutdownTimeout()
@@ -601,6 +605,21 @@ void engineClass::saveUserPreferences()
     setSystemVolume( uPref.volumeValue.toInt() );
     setMicrophoneVolume(uPref.m_micVolume.toInt());
 }
+
+/* Read /mnt/vaults.ini for vault names on selector */
+void engineClass::loadVaultPreferences()
+{
+    int loop=0;
+    QSettings settings(VAULT_SELECTOR_INI_FILE,QSettings::IniFormat);
+    int vaultCount = settings.value("vault_count","0").toInt();
+    m_vaultNames.clear();
+    for ( loop=0; loop<vaultCount; loop++)
+    {
+        m_vaultNames << settings.value("vault_" + QString::number(loop) + "_name","").toString();
+    }
+    emit vaultNamesChanged();
+}
+
 
 void engineClass::loadSettings()
 {
@@ -2796,6 +2815,11 @@ QStringList engineClass::getWifiNetworks()
     return m_wifiNetworks;
 }
 
+QStringList engineClass::getVaultNames()
+{
+    return m_vaultNames;
+}
+
 void engineClass::scanAvailableWifiNetworks(QString command, QStringList parameters)
 {
     QProcess process;
@@ -3018,6 +3042,7 @@ bool engineClass::getBusyIndicator()
 // Get vault index from vault pin page
 void engineClass::setVaultId(int vaultIndex)
 {
+    automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME_IN_VAULT_MODE );
     m_vaultIndex = vaultIndex;
 }
 

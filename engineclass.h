@@ -138,6 +138,8 @@ class engineClass : public QObject
     // Wifi
     Q_PROPERTY(QString wifiStatusText READ getWifiStatusText() NOTIFY wifiStatusTextChanged)
     Q_PROPERTY(QStringList wifiNetworks READ getWifiNetworks() NOTIFY wifiNetworksChanged)
+    Q_PROPERTY(QStringList vaultNames READ getVaultNames() NOTIFY vaultNamesChanged)
+
     // Wifi notify on top bar
     Q_PROPERTY(QString wifiNotifyText READ getWifiNotifyText() NOTIFY wifiNotifyTextChanged)
     Q_PROPERTY(QString wifiNotifyColor READ getWifiNotifyColor() NOTIFY wifiNotifyColorChanged)
@@ -179,6 +181,7 @@ class engineClass : public QObject
     Q_PROPERTY(bool macsecValid READ getMacsecValid NOTIFY macsecValidChanged)
     // busy indicator
     Q_PROPERTY(bool busyIndicator READ getBusyIndicator NOTIFY busyIndicatorChanged)
+
 
 public:
     explicit engineClass(QObject *parent = nullptr);
@@ -306,6 +309,8 @@ public:
     Q_INVOKABLE QString getAboutTextContent();
     Q_INVOKABLE void getWifiStatus();
     Q_INVOKABLE void registerTouch();
+
+    Q_INVOKABLE QStringList getVaultNames();
 
     bool deepSleepEnabled() const;
     void setDeepSleepEnabled(bool newDeepSleepEnabled);
@@ -555,6 +560,7 @@ private:
     QTimer *automaticShutdownTimer;
     bool m_busyIndicatorActive;
     int m_vaultIndex=0;
+    QStringList m_vaultNames;
 
 
 public slots:
@@ -604,6 +610,7 @@ private slots:
     QString getDefaultRoute();
     void loadApnName();
     void automaticShutdownTimeout();
+    void loadVaultPreferences();
 
 signals:
     void peer_0_NameChanged();
@@ -728,6 +735,7 @@ signals:
     void messageEraseEnabledChanged();
     void automaticShutdownEnabledChanged();
     void busyIndicatorChanged();
+    void vaultNamesChanged();
 
 };
 

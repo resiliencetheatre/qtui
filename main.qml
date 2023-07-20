@@ -294,10 +294,11 @@ ApplicationWindow {
         Tumbler {
             property alias vaultIndex: control.currentIndex
             id: control
-            model: 3
+            model: eClass.vaultNames
             anchors.horizontalCenter: parent.horizontalCenter
             visible: eClass.vaultScreen_active
             onCurrentIndexChanged: eClass.setVaultId(vaultIndex)
+            width: 200
             background: Item {
                 Rectangle {
                     opacity: control.enabled ? 0.2 : 0.1
@@ -307,7 +308,6 @@ ApplicationWindow {
                     anchors.top: parent.top
                     anchors.topMargin: 100
                 }
-
                 Rectangle {
                     opacity: control.enabled ? 0.2 : 0.1
                     border.color: "#000000"
@@ -319,9 +319,11 @@ ApplicationWindow {
             }
 
             delegate: Text {
-                text: qsTr("Vault %1").arg(modelData + 1)
+                id: controlDelegate
+                text: modelData
                 font.pointSize: 10
                 color: "#00FF00"
+                width: 200
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 opacity: 1.0 - Math.abs(Tumbler.displacement) / (control.visibleItemCount / 5)
