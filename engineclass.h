@@ -368,6 +368,7 @@ public:
     Q_INVOKABLE bool getBusyIndicator();
 
     Q_INVOKABLE void setVaultId(int vaultIndex);
+    Q_INVOKABLE void setEncapsulationType(int typeId);
 
 private:
     QString m_peer_0_CallSign="";

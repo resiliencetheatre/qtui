@@ -1075,6 +1075,7 @@ Page {
                     checked: true // TODO
                     font.pointSize: 6
                     text: qsTr("RTP packet type")
+                    onClicked: eClass.setEncapsulationType(1)
 
                     indicator: Rectangle {
                             implicitWidth: 10
@@ -1122,6 +1123,7 @@ Page {
                     checked: false // TODO
                     font.pointSize: 6
                     text: qsTr("Fake TCP packet type")
+                    onClicked: eClass.setEncapsulationType(2)
                     indicator: Rectangle {
                             implicitWidth: 10
                             implicitHeight: 10

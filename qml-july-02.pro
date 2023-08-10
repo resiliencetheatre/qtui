@@ -18,7 +18,7 @@ RESOURCES += qml.qrc
 
 TARGET = oobcomm
 
-VERSION = v0.75
+VERSION = v0.76
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
 CONFIG += qml_debug

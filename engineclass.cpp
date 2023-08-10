@@ -3046,6 +3046,14 @@ void engineClass::setVaultId(int vaultIndex)
     m_vaultIndex = vaultIndex;
 }
 
+void engineClass::setEncapsulationType(int typeId)
+{
+    if ( typeId == 1 )
+        runExternalCmd("/bin/systemctl", {"start", "rtptun"});
+    if ( typeId == 2 )
+        runExternalCmd("/bin/systemctl", {"start", "udp2raw"});
+}
+
 void engineClass::switchVaultButton()
 {
     qDebug() << "Switch vault button";
