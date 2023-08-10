@@ -29,7 +29,7 @@ Page {
     Flickable {
         anchors.fill: parent
         contentWidth: parent.width
-        contentHeight: 650
+        contentHeight: 750
         clip: true
 
         Item {
@@ -1012,8 +1012,8 @@ Page {
 
             // Vault switch (work in progress, disabled still)
             Label {
-                id: vaultChangeTitle
-                visible: false
+                id: encapsulateTitle
+                visible: true
                 anchors.left: parent.left
                 anchors.leftMargin: 5
                 height: 20
@@ -1022,11 +1022,11 @@ Page {
                 anchors.topMargin: 15
                 padding: 1
                 font.pointSize: 10
-                text: qsTr("Vault switching")
+                text: qsTr("Encapsulate")
                 color: eClass.mainColor
             }
             Rectangle {
-                visible: false
+                visible: true
                 height: 1
                 gradient: Gradient {
                         orientation: Gradient.Horizontal
@@ -1034,7 +1034,7 @@ Page {
                         GradientStop { position: 1.0; color: "#000000"  }
                 }
                 anchors {
-                    top: vaultChangeTitle.bottom
+                    top: encapsulateTitle.bottom
                      left: parent.left
                      right: parent.right
                      leftMargin: 5
@@ -1044,57 +1044,139 @@ Page {
                 }
             }
             Label {
-                visible: false
+                visible: true
                 id: vaultSwitchText
                 anchors.left: parent.left
-                anchors.leftMargin: 15
+                anchors.leftMargin: 10
                 height: 15
                 width: 140
-                anchors.top: vaultChangeTitle.bottom
+                anchors.top: encapsulateTitle.bottom
                 anchors.topMargin: 5
                 padding: 1
                 font.pointSize: 6
-                text: qsTr("Switch vault file to be used.")
+                text: qsTr("Encapsulate outer tunnel traffic to hide META DATA")
                 color: eClass.dimColor
             }
-            Button {
-                visible: false
-                id: vaultChangeButton
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: vaultSwitchText.bottom
-                anchors.topMargin: 10
-                width: 170
-                height: 20
-                text: "Switch vaults"
-                font.pointSize: 8
-                checkable: false
-                onClicked: {
-                    eClass.switchVaultButton()
-                }
-                contentItem: Text {
-                    text: parent.text
-                    font: parent.font
-                    opacity: enabled ? 1.0 : 0.3
-                    color: eClass.mainColor
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
-                background: Rectangle {
-                    anchors.fill: parent
-                    color: parent.down ? eClass.dimColor : "#000"
-                    opacity: enabled ? 1 : 0.3
-                    border.color: parent.down ? eClass.mainColor : eClass.dimColor
-                    radius: 2
-                }
+
+            ButtonGroup {
+                buttons: encapsulationButtons.children
             }
+
+            Column {
+                id: encapsulationButtons
+                anchors.top: vaultSwitchText.bottom
+                padding: -2
+                spacing: 5
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+
+                RadioButton {
+                    id: capsulateOne
+                    checked: true // TODO
+                    font.pointSize: 6
+                    text: qsTr("RTP packet type")
+
+                    indicator: Rectangle {
+                            implicitWidth: 10
+                            implicitHeight: 10
+                            x: capsulateOne.leftPadding
+                            y: parent.height / 2 - height / 2
+                            radius: 2
+                            color: "transparent"
+                            border.color: eClass.mainColor
+
+                            Rectangle {
+                                width: 6
+                                height: 6
+                                x: 2
+                                y: 2
+                                radius: 2
+                                color: capsulateOne.down ? "transparent" : eClass.mainColor
+                                visible: capsulateOne.checked
+                            }
+                    }
+                    contentItem: Text {
+                            text: capsulateOne.text
+                            font.pointSize: 8
+                            color: eClass.mainColor
+                            leftPadding: capsulateOne.indicator.width + capsulateOne.spacing
+                            verticalAlignment: Text.AlignVCenter
+                    }
+                    Label {
+                        id: capsulateOneHelpText
+                        anchors.left: parent.left
+                        anchors.leftMargin: 20
+                        height: 15
+                        width: 140
+                        anchors.top: capsulateOne.bottom
+                        anchors.topMargin: -6
+                        padding: 1
+                        font.pointSize: 6
+                        text: qsTr("Encapsulates outer tunnel as RTP packets")
+                        color: eClass.dimColor
+                    }
+                }
+
+                RadioButton {
+                    id: capsulateTwo
+                    checked: false // TODO
+                    font.pointSize: 6
+                    text: qsTr("Fake TCP packet type")
+                    indicator: Rectangle {
+                            implicitWidth: 10
+                            implicitHeight: 10
+                            x: capsulateTwo.leftPadding
+                            y: parent.height / 2 - height / 2
+                            radius: 2
+                            color: "transparent"
+                            border.color: eClass.mainColor
+
+                            Rectangle {
+                                width: 6
+                                height: 6
+                                x: 2
+                                y: 2
+                                radius: 2
+                                color: capsulateTwo.down ? "transparent" : eClass.mainColor
+                                visible: capsulateTwo.checked
+                            }
+                    }
+                    contentItem: Text {
+                            text: capsulateTwo.text
+                            font.pointSize: 8
+                            color: eClass.mainColor
+                            leftPadding: capsulateTwo.indicator.width + capsulateTwo.spacing
+                            verticalAlignment: Text.AlignVCenter
+                    }
+                    Label {
+                        id: capsulateTwoText
+                        anchors.left: parent.left
+                        anchors.leftMargin: 20
+                        height: 15
+                        width: 140
+                        anchors.top: capsulateTwo.bottom
+                        anchors.topMargin: -6
+                        padding: 1
+                        font.pointSize: 6
+                        text: qsTr("Encapsulates outer tunnel with fake TCP.\nThis might be good option when UDP traffic\nis restricted. ")
+                        color: eClass.dimColor
+                    }
+                }
+
+
+
+
+            }
+
+
+
 
             // About button
             Button {
                 id: aboutButton
                 anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: keyloadHelpText.bottom // vaultChangeButton
-                anchors.topMargin: 20
+                anchors.top: encapsulationButtons.bottom // vaultChangeButton
+                anchors.topMargin: 35
                 width: 20
                 height: 20
                 text: "i"
