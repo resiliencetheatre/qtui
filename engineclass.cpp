@@ -2349,10 +2349,12 @@ void engineClass::exitVaultOpenProcessWithFail()
     m_vaultNotifyText = "SELECT VAULT & INPUT PIN";
     m_vaultNotifyColor = "red";
     m_vaultNotifyTextColor = "white";
+    m_busyIndicatorActive = false;
     emit lockScreenPinCodeChanged();
     emit vaultScreenNotifyTextChanged();
     emit vaultScreenNotifyColorChanged();
     emit vaultScreenNotifyTextColorChanged();
+    emit busyIndicatorChanged();
 }
 
 void engineClass::onVaultProcessFinished()
