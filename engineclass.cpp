@@ -16,6 +16,8 @@
     You should have received a copy of the GNU General Public License
     along with this program; If not, see <http://www.gnu.org/licenses/>.
 
+    NOTE: This is initramfs variant
+
     TODO:
     ---------------------------------------------------------------------
     [ ]     Wifi SSID's with spaces do not work
@@ -54,7 +56,8 @@
 #include <unistd.h>
 #include <linux/input.h>
 
-#define PRE_VAULT_INI_FILE      "/opt/prevault.ini"
+// Multivault with initramfs:
+#define PRE_VAULT_INI_FILE      "/opt/tunnel/prevault.ini"
 #define USER_PREF_INI_FILE      "/opt/tunnel/userpreferences.ini"
 #define TELEMETRY_FIFO_IN       "/tmp/telemetry_fifo_in"
 #define TELEMETRY_FIFO_OUT      "/tmp/telemetry_fifo_out"
@@ -545,9 +548,9 @@ void engineClass::loadUserPreferences()
     uPref.m_pinCode = settings.value("pincode","4321").toString();
     m_deepSleepEnabled = settings.value("deepsleep",false).toBool();
     emit deepSleepEnabledChanged();
-    m_lteEnabled = settings.value("lte",false).toBool();
+    m_lteEnabled = settings.value("lte",true).toBool();
     emit lteEnabledChanged();
-    m_lteCellDisplayEnabled=settings.value("celldisplay",false).toBool();
+    m_lteCellDisplayEnabled=settings.value("celldisplay",true).toBool();
     emit lteCellDisplayEnabledChanged();
     m_nightModeEnabled = settings.value("nightmode",false).toBool();
     emit nightModeEnabledChanged();
@@ -556,10 +559,10 @@ void engineClass::loadUserPreferences()
     mLayer2WifiEnabled = settings.value("layer2wifi",false).toBool();
     emit layer2WifiChanged();
     // Some settings are required to be available before vault is open,
-    // so we load them from PRE_VAULT_INI_FILE
+    // so we load them from PRE_VAULT_INI_FILE.
+    // TODO: This is not true anymore. Multivault variant makes this approach obsolete.
+    // TODO: Clean this logic
     QSettings vaultPreferences(PRE_VAULT_INI_FILE,QSettings::IniFormat);
-    m_callSignVisibleOnVaultPage = vaultPreferences.value("vaultpagecallsign",true).toBool();
-    emit callSignOnVaultEnabledChanged();
     m_messageEraseEnabled = vaultPreferences.value("msg_erase",true).toBool();
     emit messageEraseEnabledChanged();
     m_automaticShutdownEnabled = vaultPreferences.value("automaticshutdown",true).toBool();
@@ -625,16 +628,8 @@ void engineClass::loadSettings()
 {
     if ( m_vaultModeActive ) {
         automaticShutdownTimer->start( AUTOMATIC_SHUTDOWNTIME_IN_VAULT_MODE );
-        QSettings vaultPreferences(PRE_VAULT_INI_FILE,QSettings::IniFormat);
-        bool vaultPinDisplay = vaultPreferences.value("vaultpagecallsign",false).toBool();
-        if ( vaultPinDisplay ) {
-            QString vaultMyCallSign = vaultPreferences.value("my_name","").toString();
-            m_vaultNotifyText = "ENTER VAULT PIN [ " + vaultMyCallSign + " ]";
-            emit vaultScreenNotifyTextChanged();
-        } else {
-            m_vaultNotifyText = "SELECT VAULT & INPUT PIN";
-            emit vaultScreenNotifyTextChanged();
-        }
+        m_vaultNotifyText = "SELECT VAULT & INPUT PIN";
+        emit vaultScreenNotifyTextChanged();
         m_vaultNotifyColor = "red";
         m_vaultNotifyTextColor = "white";
         emit vaultScreenNotifyColorChanged();
@@ -3137,6 +3132,7 @@ bool engineClass::callSignOnVaultEnabled() const
     return m_callSignVisibleOnVaultPage;
 }
 
+/* TODO: Remove this (multivault makes this obsolete) */
 void engineClass::setCallSignOnVaultEnabled(bool newCallSignOnVaultEnabled)
 {
     if (m_callSignVisibleOnVaultPage == newCallSignOnVaultEnabled)
