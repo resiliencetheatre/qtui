@@ -1986,8 +1986,8 @@ void engineClass::powerOff()
 {
     qint64 pid;
     QProcess process;
-    process.setProgram("poweroff");
-    process.setArguments({"-f"});
+    // initramfs version replaces 'poweroff -f' with script
+    process.setProgram("/root/utils/poweroff.sh");
     process.startDetached(&pid);
 }
 
